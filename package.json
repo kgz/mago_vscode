@@ -4,20 +4,37 @@
   "description": "",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.103.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:php",
+    "onCommand:mago.analyzeFile"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "mago-problems.helloWorld",
-        "title": "Hello World"
+      { "command": "mago-problems.helloWorld", "title": "Hello World" },
+      { "command": "mago.analyzeFile", "title": "Mago: Analyze Current File" }
+    ],
+    "configuration": {
+      "title": "Mago",
+      "properties": {
+        "mago.path": { "type": "string", "default": "", "description": "Absolute path to mago binary (optional)" },
+        "mago.analyzer.args": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Extra CLI args for mago analyzer" },
+        "mago.runOn": { "type": "string", "enum": ["save", "type", "manual"], "default": "save", "description": "When to run analysis" },
+        "mago.autodiscoverVendor": { "type": "boolean", "default": true, "description": "Try to resolve vendor/bin/mago if composer.json exists in workspace" },
+        "mago.reporting.format": { "type": "string", "enum": ["rich","medium","short","ariadne","github","gitlab","json","count","code-count","checkstyle","emacs"], "default": "json", "description": "Reporting format for analyzer output" },
+        "mago.reporting.target": { "type": "string", "enum": ["stdout","stderr"], "default": "stdout", "description": "Reporting target stream" },
+        "mago.minimumFailLevel": { "type": "string", "enum": ["note","help","warning","error"], "default": "error", "description": "Minimum issue level that causes non-zero exit" },
+        "mago.fix.enabled": { "type": "boolean", "default": false, "description": "Apply fixes (runs with --fix)" },
+        "mago.fix.dryRun": { "type": "boolean", "default": true, "description": "Use --dry-run when fixing" },
+        "mago.fix.formatAfterFix": { "type": "boolean", "default": false, "description": "Use --format-after-fix with --fix" },
+        "mago.fixableOnly": { "type": "boolean", "default": false, "description": "Filter to only fixable issues (--fixable-only)" }
       }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",

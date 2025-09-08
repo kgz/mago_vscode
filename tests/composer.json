@@ -1,0 +1,22 @@
+{
+    "name": "mago-vscode/tests",
+    "autoload": {
+        "psr-4": {
+            "MagoVscode\\Tests\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Mat",
+            "email": "Mat.frayne@gmail.com"
+        }
+    ],
+    "require-dev": {
+        "carthage-software/mago": "^0.26.1"
+    },
+    "config": {
+        "allow-plugins": {
+            "carthage-software/mago": true
+        }
+    }
+}
