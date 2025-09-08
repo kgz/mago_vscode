@@ -1,8 +1,9 @@
 {
   "name": "mago-problems",
   "displayName": "mago problems",
-  "description": "",
+  "description": "An extension that surfaces diagnostics from Mago (PHP analyzer) directly in VS Code with fast, workspace-wide analysis and inline quick fixes.",
   "version": "0.0.1",
+  "publisher": "github.com/kgz",
   "engines": {
     "vscode": "^1.85.0"
   },
