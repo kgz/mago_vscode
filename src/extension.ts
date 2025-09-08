@@ -20,6 +20,7 @@ function getConfig() {
 		formatAfterFix: cfg.get<boolean>('fix.formatAfterFix') || false,
 		fixableOnly: cfg.get<boolean>('fixableOnly') || false,
 		dryRun: cfg.get<boolean>('dryRun') ?? true,
+		debounceMs: cfg.get<number>('debounceMs') ?? 400,
 	};
 }
 
@@ -212,6 +213,44 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 	context.subscriptions.push(analyzeCmd);
+
+	// On-save / on-type triggers
+	let pendingTimer: NodeJS.Timeout | undefined;
+	const trigger = (doc: vscode.TextDocument) => {
+		if (doc.languageId !== 'php') return;
+		const cfg = getConfig();
+		if (cfg.runOn === 'manual') return;
+		const run = () => analyzeActiveFile(output);
+		if (cfg.runOn === 'save') {
+			run();
+		} else if (cfg.runOn === 'type') {
+			if (pendingTimer) clearTimeout(pendingTimer);
+			pendingTimer = setTimeout(run, Math.max(0, cfg.debounceMs));
+		}
+	};
+
+	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(trigger));
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => trigger(e.document)));
+
+	// Status bar indicator
+	const status = vscode.window.createStatusBarItem('mago.status', vscode.StatusBarAlignment.Left, 100);
+	status.text = 'Mago: Idle';
+	status.tooltip = 'Run Mago analysis for current file';
+	status.command = 'mago.analyzeFile';
+	status.show();
+	context.subscriptions.push(status);
+
+	// Wrap command to update status text
+	const runWithStatus = async () => {
+		status.text = 'Mago: Analyzing…';
+		try {
+			await analyzeActiveFile(output);
+		} finally {
+			status.text = 'Mago: Idle';
+		}
+	};
+	// Replace command implementation to use status wrapper
+	context.subscriptions.push(vscode.commands.registerCommand('mago.analyzeFile', runWithStatus));
 }
 
 export function deactivate() {}

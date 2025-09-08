@@ -25,6 +25,7 @@
         "mago.path": { "type": "string", "default": "", "description": "Absolute path to mago binary (optional)" },
         "mago.analyzer.args": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Extra CLI args for mago analyzer" },
         "mago.runOn": { "type": "string", "enum": ["save", "type", "manual"], "default": "save", "description": "When to run analysis" },
+        "mago.debounceMs": { "type": "number", "default": 400, "minimum": 0, "description": "Debounce milliseconds for on-type analysis" },
         "mago.autodiscoverVendor": { "type": "boolean", "default": true, "description": "Try to resolve vendor/bin/mago if composer.json exists in workspace" },
         "mago.reporting.format": { "type": "string", "enum": ["rich","medium","short","ariadne","github","gitlab","json","count","code-count","checkstyle","emacs"], "default": "json", "description": "Reporting format for analyzer output" },
         "mago.reporting.target": { "type": "string", "enum": ["stdout","stderr"], "default": "stdout", "description": "Reporting target stream" },
