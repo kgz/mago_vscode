@@ -19,6 +19,7 @@ function getConfig() {
 		fixDryRun: cfg.get<boolean>('fix.dryRun') ?? true,
 		formatAfterFix: cfg.get<boolean>('fix.formatAfterFix') || false,
 		fixableOnly: cfg.get<boolean>('fixableOnly') || false,
+		dryRun: cfg.get<boolean>('dryRun') ?? true,
 	};
 }
 
@@ -101,14 +102,99 @@ async function analyzeActiveFile(output: vscode.OutputChannel): Promise<void> {
 	const shellQuote = (s: string) => /[\s"'\\]/.test(s) ? `'${s.replace(/'/g, "'\\''")}'` : s;
 	const fullCmd = [shellQuote(mago), ...[...args, ...extra].map(shellQuote)].join(' ');
 	output.appendLine(`[mago] cwd=${cwd}`);
-	output.appendLine(`[mago] would run: ${fullCmd}`);
-	vscode.window.showInformationMessage('Mago: logged analyze command (no execution).');
+	output.appendLine(`[mago] ${cfg.dryRun ? 'would run' : 'running'}: ${fullCmd}`);
 
+	if (cfg.dryRun) {
+		vscode.window.showInformationMessage('Mago: logged analyze command (no execution).');
+		return;
+	}
+
+	// Execute and show raw JSON for now
+	const child = spawn(mago, [...args, ...extra], { cwd });
+	let stdout = '';
+	let stderr = '';
+	child.stdout.on('data', (d) => { stdout += d.toString(); });
+	child.stderr.on('data', (d) => { stderr += d.toString(); });
+	const exit = await new Promise<number>((resolve) => child.on('close', resolve));
+	output.appendLine(`[mago] exit=${exit}`);
+	if (stderr.trim()) output.appendLine(`[mago][stderr] ${stderr.trim()}`);
+	const analyzedPath = doc.uri.fsPath;
+	if (stdout.trim()) {
+		output.appendLine(stdout.trim());
+		await publishDiagnosticsFromJson(stdout.trim(), analyzedPath, output);
+	} else {
+		if (exit === 0 && magoDiagnostics) {
+			magoDiagnostics.set(vscode.Uri.file(analyzedPath), []);
+		}
+	}
+	vscode.window.showInformationMessage('Mago: analysis finished.');
 }
+
+async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: string, output: vscode.OutputChannel) {
+	if (!magoDiagnostics) return;
+	let payload: any;
+	try {
+		payload = JSON.parse(jsonText);
+	} catch (e) {
+		output.appendLine('[mago] failed to parse JSON output');
+		return;
+	}
+	const fileDiags: vscode.Diagnostic[] = [];
+	const issues: any[] = Array.isArray(payload?.issues) ? payload.issues : [];
+	for (const issue of issues) {
+		const level = String(issue.level || 'error').toLowerCase();
+		const severity = level === 'error' ? vscode.DiagnosticSeverity.Error
+			: level === 'warning' ? vscode.DiagnosticSeverity.Warning
+			: vscode.DiagnosticSeverity.Information;
+		const code = issue.code ? String(issue.code) : undefined;
+		const message = String(issue.message || '');
+		const ann = Array.isArray(issue.annotations) ? issue.annotations[0] : undefined;
+		const filePath: string | undefined = ann?.span?.file_id?.path || ann?.span?.file?.path || undefined;
+		let range: vscode.Range | undefined;
+		if (filePath) {
+			try {
+				const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+				const startOffset: number | undefined = ann?.span?.start?.offset;
+				const endOffset: number | undefined = ann?.span?.end?.offset;
+				if (typeof startOffset === 'number' && typeof endOffset === 'number') {
+					const startPos = doc.positionAt(startOffset);
+					const endPos = doc.positionAt(Math.max(startOffset, endOffset));
+					range = new vscode.Range(startPos, endPos);
+				}
+			} catch {}
+		}
+		if (!range) {
+			const startLine: number = (ann?.span?.start?.line ?? 0);
+			const endLine: number = (ann?.span?.end?.line ?? startLine);
+			range = new vscode.Range(Math.max(0, startLine), 0, Math.max(0, endLine), 1e9);
+		}
+		if (!filePath) continue;
+		if (path.normalize(filePath) !== path.normalize(analyzedFilePath)) continue;
+		const diag = new vscode.Diagnostic(range, message, severity);
+		if (code) diag.code = code;
+		// Attach notes as relatedInformation for better UX in Problems panel / hover
+		const notes: string[] = Array.isArray(issue.notes) ? issue.notes.map((n: any) => String(n)) : [];
+		if (notes.length) {
+			const uri = vscode.Uri.file(filePath);
+			const relatedAt = range.start;
+			diag.relatedInformation = notes.map((note) => new vscode.DiagnosticRelatedInformation(
+				new vscode.Location(uri, relatedAt),
+				note
+			));
+		}
+		fileDiags.push(diag);
+	}
+	magoDiagnostics.set(vscode.Uri.file(analyzedFilePath), fileDiags);
+}
+
+let magoDiagnostics: vscode.DiagnosticCollection | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
 	const output = vscode.window.createOutputChannel('Mago');
 	context.subscriptions.push(output);
+
+	magoDiagnostics = vscode.languages.createDiagnosticCollection('mago');
+	context.subscriptions.push(magoDiagnostics);
 
 	console.log('Mago extension activated');
 

@@ -33,6 +33,8 @@
         "mago.fix.dryRun": { "type": "boolean", "default": true, "description": "Use --dry-run when fixing" },
         "mago.fix.formatAfterFix": { "type": "boolean", "default": false, "description": "Use --format-after-fix with --fix" },
         "mago.fixableOnly": { "type": "boolean", "default": false, "description": "Filter to only fixable issues (--fixable-only)" }
+        ,
+        "mago.dryRun": { "type": "boolean", "default": true, "description": "Log analyzer command without executing it" }
       }
     }
   },
