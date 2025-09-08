@@ -10,14 +10,17 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onLanguage:php",
-    "onCommand:mago.analyzeFile"
+    "onCommand:mago.analyzeFile",
+    "onCommand:mago.analyzeWorkspace"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       { "command": "mago-problems.helloWorld", "title": "Hello World" },
-      { "command": "mago.analyzeFile", "title": "Mago: Analyze Current File" }
+      { "command": "mago.analyzeFile", "title": "Mago: Analyze Current File" },
+      { "command": "mago.analyzeWorkspace", "title": "Mago: Analyze Workspace" }
     ],
     "configuration": {
       "title": "Mago",
@@ -36,6 +39,9 @@
         "mago.fixableOnly": { "type": "boolean", "default": false, "description": "Filter to only fixable issues (--fixable-only)" }
         ,
         "mago.dryRun": { "type": "boolean", "default": true, "description": "Log analyzer command without executing it" }
+        ,
+        "mago.apply.allowUnsafe": { "type": "boolean", "default": false, "description": "Allow applying suggestions marked Unsafe" },
+        "mago.apply.allowPotentiallyUnsafe": { "type": "boolean", "default": false, "description": "Allow applying suggestions marked PotentiallyUnsafe" }
       }
     }
   },

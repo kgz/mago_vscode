@@ -5,7 +5,7 @@ php-version = "8.4.0"
 [source]
 paths = ["src/"]
 includes = ["vendor"]
-excludes = []
+excludes = ["vendor"]
 
 [formatter]
 print-width = 120

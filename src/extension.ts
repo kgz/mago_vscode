@@ -21,6 +21,8 @@ function getConfig() {
 		fixableOnly: cfg.get<boolean>('fixableOnly') || false,
 		dryRun: cfg.get<boolean>('dryRun') ?? true,
 		debounceMs: cfg.get<number>('debounceMs') ?? 400,
+		allowUnsafe: cfg.get<boolean>('apply.allowUnsafe') ?? false,
+		allowPotentiallyUnsafe: cfg.get<boolean>('apply.allowPotentiallyUnsafe') ?? false,
 	};
 }
 
@@ -131,6 +133,104 @@ async function analyzeActiveFile(output: vscode.OutputChannel): Promise<void> {
 	vscode.window.showInformationMessage('Mago: analysis finished.');
 }
 
+async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
+	const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	if (!folder) {
+		vscode.window.showWarningMessage('No workspace folder to analyze.');
+		return;
+	}
+	const mago = await resolveMagoBinary();
+	if (!mago) {
+		vscode.window.showErrorMessage('Could not resolve mago binary.');
+		return;
+	}
+	const cfg = getConfig();
+	const args: string[] = ['analyze'];
+	args.push('--reporting-format', cfg.reportingFormat);
+	args.push('--reporting-target', cfg.reportingTarget);
+	if (cfg.minimumFailLevel) args.push('--minimum-fail-level', cfg.minimumFailLevel);
+	if (cfg.fixableOnly) args.push('--fixable-only');
+	if (cfg.fixEnabled) {
+		args.push('--fix');
+		if (cfg.fixDryRun) args.push('--dry-run');
+		if (cfg.formatAfterFix) args.push('--format-after-fix');
+	}
+	args.push(folder);
+	const extra = cfg.analyzerArgs;
+	const shellQuote = (s: string) => /[\s"'\\]/.test(s) ? `'${s.replace(/'/g, "'\\''")}'` : s;
+	const fullCmd = [mago, ...args, ...extra].map(shellQuote).join(' ');
+	output.appendLine(`[mago] workspace cwd=${folder}`);
+	output.appendLine(`[mago] ${cfg.dryRun ? 'would run' : 'running'}: ${fullCmd}`);
+	if (cfg.dryRun) return;
+
+	const child = spawn(mago, [...args, ...extra], { cwd: folder });
+	let stdout = '';
+	let stderr = '';
+	child.stdout.on('data', (d) => { stdout += d.toString(); });
+	child.stderr.on('data', (d) => { stderr += d.toString(); });
+	const exit = await new Promise<number>((resolve) => child.on('close', resolve));
+	output.appendLine(`[mago] exit=${exit}`);
+	if (stderr.trim()) output.appendLine(`[mago][stderr] ${stderr.trim()}`);
+	if (stdout.trim()) {
+		// Batch update diagnostics for all files in the payload
+		await publishWorkspaceDiagnostics(stdout.trim(), output);
+	}
+}
+
+async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.OutputChannel) {
+	if (!magoDiagnostics) return;
+	let payload: any;
+	try { payload = JSON.parse(jsonText); } catch { return; }
+	const issues: any[] = Array.isArray(payload?.issues) ? payload.issues : [];
+	const byFile = new Map<string, vscode.Diagnostic[]>();
+	const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	const hasToml = folder ? fs.existsSync(path.join(folder, 'mago.toml')) : false;
+	const isVendorPath = (p: string) => {
+		const norm = path.normalize(p).toLowerCase();
+		return norm.includes(`${path.sep}vendor${path.sep}`) || norm.includes(`${path.sep}vendor-bin${path.sep}`);
+	};
+	for (const issue of issues) {
+		const level = String(issue.level || 'error').toLowerCase();
+		const severity = level === 'error' ? vscode.DiagnosticSeverity.Error
+			: level === 'warning' ? vscode.DiagnosticSeverity.Warning
+			: vscode.DiagnosticSeverity.Information;
+		const code = issue.code ? String(issue.code) : undefined;
+		const message = String(issue.message || '');
+		const ann = Array.isArray(issue.annotations) ? issue.annotations[0] : undefined;
+		const filePath: string | undefined = ann?.span?.file_id?.path || ann?.span?.file?.path || undefined;
+		if (!filePath) continue;
+		// Always ignore vendor diagnostics from reporting
+		if (isVendorPath(filePath)) continue;
+		let range: vscode.Range | undefined;
+		try {
+			const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+			const startOffset: number | undefined = ann?.span?.start?.offset;
+			const endOffset: number | undefined = ann?.span?.end?.offset;
+			if (typeof startOffset === 'number' && typeof endOffset === 'number') {
+				const startPos = doc.positionAt(startOffset);
+				const endPos = doc.positionAt(Math.max(startOffset, endOffset));
+				range = new vscode.Range(startPos, endPos);
+			}
+		} catch {}
+		if (!range) {
+			const startLine: number = (ann?.span?.start?.line ?? 0);
+			const endLine: number = (ann?.span?.end?.line ?? startLine);
+			range = new vscode.Range(Math.max(0, startLine), 0, Math.max(0, endLine), 1e9);
+		}
+		const diag = new vscode.Diagnostic(range, message, severity);
+		if (code) diag.code = `Mago(${code})`;
+		(byFile.get(filePath) ?? byFile.set(filePath, []).get(filePath)!).push(diag);
+		try {
+			const start = `${range.start.line + 1}:${range.start.character + 1}`;
+			output.appendLine(`[mago][diag][workspace] ${filePath}:${start} ${code ?? ''} ${message}`.trim());
+		} catch {}
+	}
+	// Replace collections per file
+	for (const [file, diags] of byFile) {
+		magoDiagnostics.set(vscode.Uri.file(file), diags);
+	}
+}
+
 async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: string, output: vscode.OutputChannel) {
 	if (!magoDiagnostics) return;
 	let payload: any;
@@ -172,7 +272,7 @@ async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: st
 		if (!filePath) continue;
 		if (path.normalize(filePath) !== path.normalize(analyzedFilePath)) continue;
 		const diag = new vscode.Diagnostic(range, message, severity);
-		if (code) diag.code = code;
+		if (code) diag.code = `Mago(${code})`;
 		// Attach notes as relatedInformation for better UX in Problems panel / hover
 		const notes: string[] = Array.isArray(issue.notes) ? issue.notes.map((n: any) => String(n)) : [];
 		if (notes.length) {
@@ -183,7 +283,14 @@ async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: st
 				note
 			));
 		}
+		// Attach code action metadata: store suggestions on the diagnostic
+		const suggestions: any[] = Array.isArray(issue.suggestions) ? issue.suggestions : [];
+		(diag as any).magoSuggestions = suggestions;
 		fileDiags.push(diag);
+		try {
+			const start = `${range.start.line + 1}:${range.start.character + 1}`;
+			output.appendLine(`[mago][diag][file] ${filePath}:${start} ${code ?? ''} ${message}`.trim());
+		} catch {}
 	}
 	magoDiagnostics.set(vscode.Uri.file(analyzedFilePath), fileDiags);
 }
@@ -204,15 +311,33 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(hello);
 
-	const analyzeCmd = vscode.commands.registerCommand('mago.analyzeFile', async () => {
+	// Command to run analysis (we'll update status bar text around it)
+	const runWithStatus = async () => {
+		status.text = 'Mago: Analyzing…';
 		try {
 			await analyzeActiveFile(output);
 		} catch (e: any) {
 			vscode.window.showErrorMessage(`Mago analyze failed: ${e?.message || e}`);
 			output.appendLine(String(e));
+		} finally {
+			status.text = 'Mago: Idle';
 		}
-	});
+	};
+	const analyzeCmd = vscode.commands.registerCommand('mago.analyzeFile', runWithStatus);
 	context.subscriptions.push(analyzeCmd);
+
+	// Workspace analysis command
+	context.subscriptions.push(vscode.commands.registerCommand('mago.analyzeWorkspace', async () => {
+		status.text = 'Mago: Analyzing workspace…';
+		try {
+			await analyzeWorkspace(output);
+		} catch (e: any) {
+			vscode.window.showErrorMessage(`Mago workspace analyze failed: ${e?.message || e}`);
+			output.appendLine(String(e));
+		} finally {
+			status.text = 'Mago: Idle';
+		}
+	}));
 
 	// On-save / on-type triggers
 	let pendingTimer: NodeJS.Timeout | undefined;
@@ -220,7 +345,7 @@ export function activate(context: vscode.ExtensionContext) {
 		if (doc.languageId !== 'php') return;
 		const cfg = getConfig();
 		if (cfg.runOn === 'manual') return;
-		const run = () => analyzeActiveFile(output);
+		const run = () => analyzeWorkspace(output);
 		if (cfg.runOn === 'save') {
 			run();
 		} else if (cfg.runOn === 'type') {
@@ -240,17 +365,41 @@ export function activate(context: vscode.ExtensionContext) {
 	status.show();
 	context.subscriptions.push(status);
 
-	// Wrap command to update status text
-	const runWithStatus = async () => {
-		status.text = 'Mago: Analyzing…';
-		try {
-			await analyzeActiveFile(output);
-		} finally {
-			status.text = 'Mago: Idle';
+	// CodeAction provider to apply suggestions
+	context.subscriptions.push(vscode.languages.registerCodeActionsProvider('php', {
+		provideCodeActions(document, range, context, token) {
+			const actions: vscode.CodeAction[] = [];
+			for (const diag of context.diagnostics) {
+				const suggestions: any[] = (diag as any).magoSuggestions || [];
+				for (const group of suggestions) {
+					const [, patch] = group; // [fileMeta, patch]
+					const ops: any[] = Array.isArray(patch?.operations) ? patch.operations : [];
+					const edits = new vscode.WorkspaceEdit();
+					let safety: 'Safe'|'PotentiallyUnsafe'|'Unsafe'|undefined;
+					for (const op of ops) {
+						if (op?.type === 'Insert') {
+							const offset: number = op.value?.offset;
+							const text: string = op.value?.text ?? '';
+							safety = op.value?.safety_classification?.type;
+							const pos = document.positionAt(offset);
+							edits.insert(document.uri, pos, text);
+						}
+					}
+					const action = new vscode.CodeAction('Mago: Apply suggestion', vscode.CodeActionKind.QuickFix);
+					action.edit = edits;
+					if (safety === 'Unsafe' && !getConfig().allowUnsafe) continue;
+					if (safety === 'PotentiallyUnsafe' && !getConfig().allowPotentiallyUnsafe) continue;
+					actions.push(action);
+				}
+			}
+			return actions;
 		}
-	};
-	// Replace command implementation to use status wrapper
-	context.subscriptions.push(vscode.commands.registerCommand('mago.analyzeFile', runWithStatus));
+	}));
+
+	// Initial run on startup (workspace-wide for full symbol context)
+	setTimeout(() => {
+		vscode.commands.executeCommand('mago.analyzeWorkspace');
+	}, 1000);
 }
 
 export function deactivate() {}

@@ -1,22 +1,18 @@
 <?php
+ namespace MagoVscode\Tests;
 
+use MagoVscode\Tests\contracts\HelloWorldContract;
 
 class HelloWorld
 {
 
-    public function sayHello(string $name)
+    public function sayHello(string $_name)
     {
         return "Hello, World!";
     }
-}
+} 
 
-interface HelloWorldInterface
-{
-    public function sayHello(string $name);
-}
-
-
-class HelloWorld2 extends HelloWorld implements HelloWorldInterface
+class HelloWorld2 extends HelloWorld implements HelloWorldContract
 {
 
     public function sayHello(int $name)
