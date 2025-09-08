@@ -4,27 +4,22 @@
 class HelloWorld
 {
 
-    public function __construct(private mixed $name)
-    {
-        $this->sayHello($name);
-    }
-
     public function sayHello(string $name)
     {
         return "Hello, World!";
     }
 }
 
-
-class HelloWorld2 extends HelloWorld
+interface HelloWorldInterface
 {
-    public function __construct(private string $name)
-    {
-        $this->sayHello($name);
-    }
+    public function sayHello(string $name);
+}
 
 
-    public function sayHello(string $name)
+class HelloWorld2 extends HelloWorld implements HelloWorldInterface
+{
+
+    public function sayHello(int $name)
     {
         return "Hello, World!";
     }
