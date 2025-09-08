@@ -219,6 +219,9 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 		}
 		const diag = new vscode.Diagnostic(range, message, severity);
 		if (code) diag.code = `Mago(${code})`;
+		// Attach suggestions so Quick Fix can surface for workspace diagnostics too
+		const suggestions: any[] = Array.isArray(issue.suggestions) ? issue.suggestions : [];
+		(diag as any).magoSuggestions = suggestions;
 		(byFile.get(filePath) ?? byFile.set(filePath, []).get(filePath)!).push(diag);
 		try {
 			const start = `${range.start.line + 1}:${range.start.character + 1}`;
