@@ -10,7 +10,7 @@ function getConfig() {
 	return {
 		magoPath: cfg.get<string>('path') || '',
 		analyzerArgs: cfg.get<string[]>('analyzer.args') || [],
-		runOn: cfg.get<'save'|'type'|'manual'>('runOn') || 'save',
+		runOn: cfg.get<'save' | 'type' | 'manual'>('runOn') || 'save',
 		autodiscoverVendor: cfg.get<boolean>('autodiscoverVendor') ?? true,
 		reportingFormat: cfg.get<string>('reporting.format') || 'json',
 		reportingTarget: cfg.get<string>('reporting.target') || 'stdout',
@@ -46,7 +46,7 @@ async function resolveMagoBinary(): Promise<string | null> {
 					if (fs.existsSync(candidate)) {
 						return candidate;
 					}
-				} catch {}
+				} catch { }
 			}
 		}
 	}
@@ -187,7 +187,7 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 			const issues = countIssues(stdout.trim());
 			const warn = elapsedMs > 3000 ? ' [slow]' : '';
 			output.appendLine(`[mago][perf] elapsedMs=${elapsedMs} issues=${issues}${warn}`);
-		} catch {}
+		} catch { }
 	} else {
 		// No output: clear stale diagnostics
 		if (magoDiagnostics) magoDiagnostics.clear();
@@ -210,7 +210,7 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 		const level = String(issue.level || 'error').toLowerCase();
 		const severity = level === 'error' ? vscode.DiagnosticSeverity.Error
 			: level === 'warning' ? vscode.DiagnosticSeverity.Warning
-			: vscode.DiagnosticSeverity.Information;
+				: vscode.DiagnosticSeverity.Information;
 		const code = issue.code ? String(issue.code) : undefined;
 		const message = String(issue.message || '');
 		const ann = Array.isArray(issue.annotations) ? issue.annotations[0] : undefined;
@@ -228,7 +228,7 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 				const endPos = doc.positionAt(Math.max(startOffset, endOffset));
 				range = new vscode.Range(startPos, endPos);
 			}
-		} catch {}
+		} catch { }
 		if (!range) {
 			const startLine: number = (ann?.span?.start?.line ?? 0);
 			const endLine: number = (ann?.span?.end?.line ?? startLine);
@@ -244,7 +244,7 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 		try {
 			const start = `${range.start.line + 1}:${range.start.character + 1}`;
 			output.appendLine(`[mago][diag][workspace] ${filePath}:${start} ${code ?? ''} ${message}`.trim());
-		} catch {}
+		} catch { }
 	}
 	// Clear all and replace to remove stale diagnostics
 	magoDiagnostics.clear();
@@ -254,12 +254,12 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 }
 
 function countIssues(jsonText: string): number {
-    try {
-        const payload = JSON.parse(jsonText);
-        return Array.isArray(payload?.issues) ? payload.issues.length : 0;
-    } catch {
-        return 0;
-    }
+	try {
+		const payload = JSON.parse(jsonText);
+		return Array.isArray(payload?.issues) ? payload.issues.length : 0;
+	} catch {
+		return 0;
+	}
 }
 
 async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: string, output: vscode.OutputChannel) {
@@ -277,7 +277,7 @@ async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: st
 		const level = String(issue.level || 'error').toLowerCase();
 		const severity = level === 'error' ? vscode.DiagnosticSeverity.Error
 			: level === 'warning' ? vscode.DiagnosticSeverity.Warning
-			: vscode.DiagnosticSeverity.Information;
+				: vscode.DiagnosticSeverity.Information;
 		const code = issue.code ? String(issue.code) : undefined;
 		const message = String(issue.message || '');
 		const ann = Array.isArray(issue.annotations) ? issue.annotations[0] : undefined;
@@ -293,7 +293,7 @@ async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: st
 					const endPos = doc.positionAt(Math.max(startOffset, endOffset));
 					range = new vscode.Range(startPos, endPos);
 				}
-			} catch {}
+			} catch { }
 		}
 		if (!range) {
 			const startLine: number = (ann?.span?.start?.line ?? 0);
@@ -322,7 +322,7 @@ async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: st
 		try {
 			const start = `${range.start.line + 1}:${range.start.character + 1}`;
 			output.appendLine(`[mago][diag][file] ${filePath}:${start} ${code ?? ''} ${message}`.trim());
-		} catch {}
+		} catch { }
 	}
 	magoDiagnostics.set(vscode.Uri.file(analyzedFilePath), fileDiags);
 }
@@ -339,7 +339,7 @@ async function runWorkspaceSingleFlight(output: vscode.OutputChannel) {
 			try {
 				output.appendLine('[mago] cancelling current analysis...');
 				currentWorkspaceChild.kill('SIGTERM');
-			} catch {}
+			} catch { }
 		}
 		return;
 	}
@@ -434,7 +434,7 @@ export function activate(context: vscode.ExtensionContext) {
 					const [, patch] = group; // [fileMeta, patch]
 					const ops: any[] = Array.isArray(patch?.operations) ? patch.operations : [];
 					const edits = new vscode.WorkspaceEdit();
-					let safety: 'Safe'|'PotentiallyUnsafe'|'Unsafe'|undefined;
+					let safety: 'Safe' | 'PotentiallyUnsafe' | 'Unsafe' | undefined;
 					for (const op of ops) {
 						if (op?.type === 'Insert') {
 							const offset: number = op.value?.offset;
@@ -461,4 +461,4 @@ export function activate(context: vscode.ExtensionContext) {
 	}, 1000);
 }
 
-export function deactivate() {}
+export function deactivate() { }
