@@ -155,7 +155,11 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 		if (cfg.fixDryRun) args.push('--dry-run');
 		if (cfg.formatAfterFix) args.push('--format-after-fix');
 	}
-	args.push(folder);
+	// If mago.toml exists at the workspace root, let Mago discover paths itself; otherwise pass the folder
+	const hasTomlAtRoot = fs.existsSync(path.join(folder, 'mago.toml'));
+	if (!hasTomlAtRoot) {
+		args.push(folder);
+	}
 	const extra = cfg.analyzerArgs;
 	const shellQuote = (s: string) => /[\s"'\\]/.test(s) ? `'${s.replace(/'/g, "'\\''")}'` : s;
 	const fullCmd = [mago, ...args, ...extra].map(shellQuote).join(' ');
@@ -163,6 +167,7 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 	output.appendLine(`[mago] ${cfg.dryRun ? 'would run' : 'running'}: ${fullCmd}`);
 	if (cfg.dryRun) return;
 
+	const startedAt = Date.now();
 	const child = spawn(mago, [...args, ...extra], { cwd: folder });
 	currentWorkspaceChild = child;
 	let stdout = '';
@@ -176,6 +181,16 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 	if (stdout.trim()) {
 		// Batch update diagnostics for all files in the payload
 		await publishWorkspaceDiagnostics(stdout.trim(), output);
+		// Performance diagnostics
+		try {
+			const elapsedMs = Date.now() - startedAt;
+			const issues = countIssues(stdout.trim());
+			const warn = elapsedMs > 3000 ? ' [slow]' : '';
+			output.appendLine(`[mago][perf] elapsedMs=${elapsedMs} issues=${issues}${warn}`);
+		} catch {}
+	} else {
+		// No output: clear stale diagnostics
+		if (magoDiagnostics) magoDiagnostics.clear();
 	}
 }
 
@@ -220,10 +235,11 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 			range = new vscode.Range(Math.max(0, startLine), 0, Math.max(0, endLine), 1e9);
 		}
 		const diag = new vscode.Diagnostic(range, message, severity);
-		if (code) diag.code = `Mago(${code})`;
+		if (code) diag.code = `${code}`;
+		diag.source = 'mago';
 		// Attach suggestions so Quick Fix can surface for workspace diagnostics too
 		const suggestions: any[] = Array.isArray(issue.suggestions) ? issue.suggestions : [];
-		(diag as any).magoSuggestions = suggestions;
+		(diag as typeof diag & { magoSuggestions: any[] }).magoSuggestions = suggestions;
 		(byFile.get(filePath) ?? byFile.set(filePath, []).get(filePath)!).push(diag);
 		try {
 			const start = `${range.start.line + 1}:${range.start.character + 1}`;
@@ -235,6 +251,15 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 	for (const [file, diags] of byFile) {
 		magoDiagnostics.set(vscode.Uri.file(file), diags);
 	}
+}
+
+function countIssues(jsonText: string): number {
+    try {
+        const payload = JSON.parse(jsonText);
+        return Array.isArray(payload?.issues) ? payload.issues.length : 0;
+    } catch {
+        return 0;
+    }
 }
 
 async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: string, output: vscode.OutputChannel) {
@@ -278,7 +303,8 @@ async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: st
 		if (!filePath) continue;
 		if (path.normalize(filePath) !== path.normalize(analyzedFilePath)) continue;
 		const diag = new vscode.Diagnostic(range, message, severity);
-		if (code) diag.code = `Mago(${code})`;
+		if (code) diag.code = `${code}`;
+		diag.source = 'mago';
 		// Attach notes as relatedInformation for better UX in Problems panel / hover
 		const notes: string[] = Array.isArray(issue.notes) ? issue.notes.map((n: any) => String(n)) : [];
 		if (notes.length) {
