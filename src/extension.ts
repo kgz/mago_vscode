@@ -164,11 +164,13 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 	if (cfg.dryRun) return;
 
 	const child = spawn(mago, [...args, ...extra], { cwd: folder });
+	currentWorkspaceChild = child;
 	let stdout = '';
 	let stderr = '';
 	child.stdout.on('data', (d) => { stdout += d.toString(); });
 	child.stderr.on('data', (d) => { stderr += d.toString(); });
 	const exit = await new Promise<number>((resolve) => child.on('close', resolve));
+	currentWorkspaceChild = null;
 	output.appendLine(`[mago] exit=${exit}`);
 	if (stderr.trim()) output.appendLine(`[mago][stderr] ${stderr.trim()}`);
 	if (stdout.trim()) {
@@ -228,7 +230,8 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 			output.appendLine(`[mago][diag][workspace] ${filePath}:${start} ${code ?? ''} ${message}`.trim());
 		} catch {}
 	}
-	// Replace collections per file
+	// Clear all and replace to remove stale diagnostics
+	magoDiagnostics.clear();
 	for (const [file, diags] of byFile) {
 		magoDiagnostics.set(vscode.Uri.file(file), diags);
 	}
@@ -299,6 +302,31 @@ async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: st
 }
 
 let magoDiagnostics: vscode.DiagnosticCollection | undefined;
+let isWorkspaceAnalyzing = false;
+let workspaceRerunRequested = false;
+let currentWorkspaceChild: import('child_process').ChildProcess | null = null;
+
+async function runWorkspaceSingleFlight(output: vscode.OutputChannel) {
+	if (isWorkspaceAnalyzing) {
+		workspaceRerunRequested = true;
+		if (currentWorkspaceChild) {
+			try {
+				output.appendLine('[mago] cancelling current analysis...');
+				currentWorkspaceChild.kill('SIGTERM');
+			} catch {}
+		}
+		return;
+	}
+	isWorkspaceAnalyzing = true;
+	try {
+		do {
+			workspaceRerunRequested = false;
+			await analyzeWorkspace(output);
+		} while (workspaceRerunRequested);
+	} finally {
+		isWorkspaceAnalyzing = false;
+	}
+}
 
 export function activate(context: vscode.ExtensionContext) {
 	const output = vscode.window.createOutputChannel('Mago');
@@ -318,7 +346,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const runWithStatus = async () => {
 		status.text = 'Mago: Analyzing…';
 		try {
-			await analyzeActiveFile(output);
+			await runWorkspaceSingleFlight(output);
 		} catch (e: any) {
 			vscode.window.showErrorMessage(`Mago analyze failed: ${e?.message || e}`);
 			output.appendLine(String(e));
@@ -333,7 +361,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('mago.analyzeWorkspace', async () => {
 		status.text = 'Mago: Analyzing workspace…';
 		try {
-			await analyzeWorkspace(output);
+			await runWorkspaceSingleFlight(output);
 		} catch (e: any) {
 			vscode.window.showErrorMessage(`Mago workspace analyze failed: ${e?.message || e}`);
 			output.appendLine(String(e));
@@ -342,23 +370,25 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
-	// On-save / on-type triggers
+	// On-save / on-type triggers (separate handlers to avoid running on change when set to save)
 	let pendingTimer: NodeJS.Timeout | undefined;
-	const trigger = (doc: vscode.TextDocument) => {
+	const handleSave = (doc: vscode.TextDocument) => {
 		if (doc.languageId !== 'php') return;
 		const cfg = getConfig();
-		if (cfg.runOn === 'manual') return;
-		const run = () => analyzeWorkspace(output);
-		if (cfg.runOn === 'save') {
-			run();
-		} else if (cfg.runOn === 'type') {
-			if (pendingTimer) clearTimeout(pendingTimer);
-			pendingTimer = setTimeout(run, Math.max(0, cfg.debounceMs));
-		}
+		if (cfg.runOn !== 'save') return;
+		runWorkspaceSingleFlight(output);
+	};
+	const handleChange = (e: vscode.TextDocumentChangeEvent) => {
+		const doc = e.document;
+		if (doc.languageId !== 'php') return;
+		const cfg = getConfig();
+		if (cfg.runOn !== 'type') return;
+		if (pendingTimer) clearTimeout(pendingTimer);
+		pendingTimer = setTimeout(() => runWorkspaceSingleFlight(output), Math.max(0, cfg.debounceMs));
 	};
 
-	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(trigger));
-	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => trigger(e.document)));
+	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(handleSave));
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(handleChange));
 
 	// Status bar indicator
 	const status = vscode.window.createStatusBarItem('mago.status', vscode.StatusBarAlignment.Left, 100);
