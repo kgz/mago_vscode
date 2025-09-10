@@ -10,7 +10,7 @@ class HelloWorld
     {
         return "Hello, World!";
 
-        $k = $this->test2(HelloWorld2::class);
+        $k = $this->test2(4);
         $k->sayHello(1);
     }
 
@@ -39,7 +39,7 @@ class HelloWorld
         throw new \Exception("Invalid class");
     }
 
-} 
+}
 
 class HelloWorld2 extends HelloWorld implements HelloWorldContract
 {
@@ -47,7 +47,7 @@ class HelloWorld2 extends HelloWorld implements HelloWorldContract
     #[\Override]
     public function sayHello(int $name)
     {
-        return "Hello, World!" + $name;  
+        return "Hello, World!" + $name;
     }
 
     #[\Override]
