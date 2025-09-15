@@ -87,14 +87,14 @@ async function analyzeActiveFile(output: vscode.OutputChannel): Promise<void> {
 	args.push('--reporting-target', cfg.reportingTarget);
 
 	// levels and filters
-	if (cfg.minimumFailLevel) args.push('--minimum-fail-level', cfg.minimumFailLevel);
-	if (cfg.fixableOnly) args.push('--fixable-only');
+	if (cfg.minimumFailLevel) {args.push('--minimum-fail-level', cfg.minimumFailLevel);}
+	if (cfg.fixableOnly) {args.push('--fixable-only');}
 
 	// fix flags
 	if (cfg.fixEnabled) {
 		args.push('--fix');
-		if (cfg.fixDryRun) args.push('--dry-run');
-		if (cfg.formatAfterFix) args.push('--format-after-fix');
+		if (cfg.fixDryRun) {args.push('--dry-run');}
+		if (cfg.formatAfterFix) {args.push('--format-after-fix');}
 	}
 
 	// file path
@@ -120,7 +120,7 @@ async function analyzeActiveFile(output: vscode.OutputChannel): Promise<void> {
 	child.stderr.on('data', (d) => { stderr += d.toString(); });
 	const exit = await new Promise<number>((resolve) => child.on('close', resolve));
 	output.appendLine(`[mago] exit=${exit}`);
-	if (stderr.trim()) output.appendLine(`[mago][stderr] ${stderr.trim()}`);
+	if (stderr.trim()) {output.appendLine(`[mago][stderr] ${stderr.trim()}`);}
 	const analyzedPath = doc.uri.fsPath;
 	if (stdout.trim()) {
 		output.appendLine(stdout.trim());
@@ -148,12 +148,12 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 	const args: string[] = ['analyze'];
 	args.push('--reporting-format', cfg.reportingFormat);
 	args.push('--reporting-target', cfg.reportingTarget);
-	if (cfg.minimumFailLevel) args.push('--minimum-fail-level', cfg.minimumFailLevel);
-	if (cfg.fixableOnly) args.push('--fixable-only');
+	if (cfg.minimumFailLevel) {args.push('--minimum-fail-level', cfg.minimumFailLevel);}
+	if (cfg.fixableOnly) {args.push('--fixable-only');}
 	if (cfg.fixEnabled) {
 		args.push('--fix');
-		if (cfg.fixDryRun) args.push('--dry-run');
-		if (cfg.formatAfterFix) args.push('--format-after-fix');
+		if (cfg.fixDryRun) {args.push('--dry-run');}
+		if (cfg.formatAfterFix) {args.push('--format-after-fix');}
 	}
 	// If mago.toml exists at the workspace root, let Mago discover paths itself; otherwise pass the folder
 	const hasTomlAtRoot = fs.existsSync(path.join(folder, 'mago.toml'));
@@ -165,7 +165,7 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 	const fullCmd = [mago, ...args, ...extra].map(shellQuote).join(' ');
 	output.appendLine(`[mago] workspace cwd=${folder}`);
 	output.appendLine(`[mago] ${cfg.dryRun ? 'would run' : 'running'}: ${fullCmd}`);
-	if (cfg.dryRun) return;
+	if (cfg.dryRun) {return;}
 
 	const startedAt = Date.now();
 	const child = spawn(mago, [...args, ...extra], { cwd: folder });
@@ -177,7 +177,7 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 	const exit = await new Promise<number>((resolve) => child.on('close', resolve));
 	currentWorkspaceChild = null;
 	output.appendLine(`[mago] exit=${exit}`);
-	if (stderr.trim()) output.appendLine(`[mago][stderr] ${stderr.trim()}`);
+	if (stderr.trim()) {output.appendLine(`[mago][stderr] ${stderr.trim()}`);}
 	if (stdout.trim()) {
 		// Batch update diagnostics for all files in the payload
 		await publishWorkspaceDiagnostics(stdout.trim(), output);
@@ -190,12 +190,12 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 		} catch { }
 	} else {
 		// No output: clear stale diagnostics
-		if (magoDiagnostics) magoDiagnostics.clear();
+		if (magoDiagnostics) {magoDiagnostics.clear();}
 	}
 }
 
 async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.OutputChannel) {
-	if (!magoDiagnostics) return;
+	if (!magoDiagnostics) {return;}
 	let payload: any;
 	try { payload = JSON.parse(jsonText); } catch { return; }
 	const issues: any[] = Array.isArray(payload?.issues) ? payload.issues : [];
@@ -215,9 +215,9 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 		const message = String(issue.message || '');
 		const ann = Array.isArray(issue.annotations) ? issue.annotations[0] : undefined;
 		const filePath: string | undefined = ann?.span?.file_id?.path || ann?.span?.file?.path || undefined;
-		if (!filePath) continue;
+		if (!filePath) {continue;}
 		// Always ignore vendor diagnostics from reporting
-		if (isVendorPath(filePath)) continue;
+		if (isVendorPath(filePath)) {continue;}
 		let range: vscode.Range | undefined;
 		try {
 			const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
@@ -235,7 +235,7 @@ async function publishWorkspaceDiagnostics(jsonText: string, output: vscode.Outp
 			range = new vscode.Range(Math.max(0, startLine), 0, Math.max(0, endLine), 1e9);
 		}
 		const diag = new vscode.Diagnostic(range, message, severity);
-		if (code) diag.code = `${code}`;
+		if (code) {diag.code = `${code}`;}
 		diag.source = 'mago';
 		// Attach suggestions so Quick Fix can surface for workspace diagnostics too
 		const suggestions: any[] = Array.isArray(issue.suggestions) ? issue.suggestions : [];
@@ -263,7 +263,7 @@ function countIssues(jsonText: string): number {
 }
 
 async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: string, output: vscode.OutputChannel) {
-	if (!magoDiagnostics) return;
+	if (!magoDiagnostics) {return;}
 	let payload: any;
 	try {
 		payload = JSON.parse(jsonText);
@@ -300,10 +300,10 @@ async function publishDiagnosticsFromJson(jsonText: string, analyzedFilePath: st
 			const endLine: number = (ann?.span?.end?.line ?? startLine);
 			range = new vscode.Range(Math.max(0, startLine), 0, Math.max(0, endLine), 1e9);
 		}
-		if (!filePath) continue;
-		if (path.normalize(filePath) !== path.normalize(analyzedFilePath)) continue;
+		if (!filePath) {continue;}
+		if (path.normalize(filePath) !== path.normalize(analyzedFilePath)) {continue;}
 		const diag = new vscode.Diagnostic(range, message, severity);
-		if (code) diag.code = `${code}`;
+		if (code) {diag.code = `${code}`;}
 		diag.source = 'mago';
 		// Attach notes as relatedInformation for better UX in Problems panel / hover
 		const notes: string[] = Array.isArray(issue.notes) ? issue.notes.map((n: any) => String(n)) : [];
@@ -399,17 +399,17 @@ export function activate(context: vscode.ExtensionContext) {
 	// On-save / on-type triggers (separate handlers to avoid running on change when set to save)
 	let pendingTimer: NodeJS.Timeout | undefined;
 	const handleSave = (doc: vscode.TextDocument) => {
-		if (doc.languageId !== 'php') return;
+		if (doc.languageId !== 'php') {return;}
 		const cfg = getConfig();
-		if (cfg.runOn !== 'save') return;
+		if (cfg.runOn !== 'save') {return;}
 		runWorkspaceSingleFlight(output);
 	};
 	const handleChange = (e: vscode.TextDocumentChangeEvent) => {
 		const doc = e.document;
-		if (doc.languageId !== 'php') return;
+		if (doc.languageId !== 'php') {return;}
 		const cfg = getConfig();
-		if (cfg.runOn !== 'type') return;
-		if (pendingTimer) clearTimeout(pendingTimer);
+		if (cfg.runOn !== 'type') {return;}
+		if (pendingTimer) {clearTimeout(pendingTimer);}
 		pendingTimer = setTimeout(() => runWorkspaceSingleFlight(output), Math.max(0, cfg.debounceMs));
 	};
 
@@ -446,8 +446,8 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 					const action = new vscode.CodeAction('Mago: Apply suggestion', vscode.CodeActionKind.QuickFix);
 					action.edit = edits;
-					if (safety === 'Unsafe' && !getConfig().allowUnsafe) continue;
-					if (safety === 'PotentiallyUnsafe' && !getConfig().allowPotentiallyUnsafe) continue;
+					if (safety === 'Unsafe' && !getConfig().allowUnsafe) {continue;}
+					if (safety === 'PotentiallyUnsafe' && !getConfig().allowPotentiallyUnsafe) {continue;}
 					actions.push(action);
 				}
 			}
