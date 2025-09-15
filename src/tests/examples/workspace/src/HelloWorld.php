@@ -47,12 +47,34 @@ class HelloWorld2 extends HelloWorld implements HelloWorldContract
     #[\Override]
     public function sayHello(int $name)
     {
+
+		return "sdfsdf";
         return "Hello, World!" + $name;
     }
 
     #[\Override]
-    public function sayHellos(string $name)
+    public function sayHellos(int $name)
     {
         return "Hello, World!" + $name;
     }
+
+	/**
+	 *
+	 * @throws \Exception
+	 *
+	 * @return void
+	 */
+	public function test3(): void {
+		throw new \Exception("sdf");
+		return;
+	}
+
+	public function test4(): void {
+		try {
+			$this->test3();
+		} catch (\RuntimeException $e) {
+			echo $e->getMessage();
+		}
+		return;
+	}
 }

@@ -12,14 +12,12 @@ function getConfig() {
 		analyzerArgs: cfg.get<string[]>('analyzer.args') || [],
 		runOn: cfg.get<'save' | 'type' | 'manual'>('runOn') || 'save',
 		autodiscoverVendor: cfg.get<boolean>('autodiscoverVendor') ?? true,
-		reportingFormat: cfg.get<string>('reporting.format') || 'json',
-		reportingTarget: cfg.get<string>('reporting.target') || 'stdout',
 		minimumFailLevel: cfg.get<string>('minimumFailLevel') || 'error',
 		fixEnabled: cfg.get<boolean>('fix.enabled') || false,
 		fixDryRun: cfg.get<boolean>('fix.dryRun') ?? true,
 		formatAfterFix: cfg.get<boolean>('fix.formatAfterFix') || false,
 		fixableOnly: cfg.get<boolean>('fixableOnly') || false,
-		dryRun: cfg.get<boolean>('dryRun') ?? true,
+		dryRun: cfg.get<boolean>('debug.dryRun') ?? true,
 		debounceMs: cfg.get<number>('debounceMs') ?? 400,
 		allowUnsafe: cfg.get<boolean>('apply.allowUnsafe') ?? false,
 		allowPotentiallyUnsafe: cfg.get<boolean>('apply.allowPotentiallyUnsafe') ?? false,
@@ -67,6 +65,18 @@ async function analyzeActiveFile(output: vscode.OutputChannel): Promise<void> {
 		return;
 	}
 
+	// Require mago.toml in workspace before running any analysis
+	const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	if (workspaceFolder) {
+		const tomlPath = path.join(workspaceFolder, 'mago.toml');
+		if (!fs.existsSync(tomlPath)) {
+			await maybeOfferInit(workspaceFolder, output);
+			return;
+		} else {
+			warnIfVendorNotIgnored(workspaceFolder);
+		}
+	}
+
 	const mago = await resolveMagoBinary();
 	if (!mago) {
 		vscode.window.showErrorMessage('Could not resolve mago binary.');
@@ -82,9 +92,11 @@ async function analyzeActiveFile(output: vscode.OutputChannel): Promise<void> {
 	const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || path.dirname(doc.uri.fsPath);
 	const args: string[] = ['analyze'];
 
-	// reporting
-	args.push('--reporting-format', cfg.reportingFormat);
-	args.push('--reporting-target', cfg.reportingTarget);
+	// reporting (always request JSON to parse diagnostics) unless fixing
+	if (!cfg.fixEnabled) {
+		args.push('--reporting-format', 'json');
+		args.push('--reporting-target', 'stdout');
+	}
 
 	// levels and filters
 	if (cfg.minimumFailLevel) {args.push('--minimum-fail-level', cfg.minimumFailLevel);}
@@ -122,7 +134,7 @@ async function analyzeActiveFile(output: vscode.OutputChannel): Promise<void> {
 	output.appendLine(`[mago] exit=${exit}`);
 	if (stderr.trim()) {output.appendLine(`[mago][stderr] ${stderr.trim()}`);}
 	const analyzedPath = doc.uri.fsPath;
-	if (stdout.trim()) {
+	if (!cfg.fixEnabled && stdout.trim()) {
 		output.appendLine(stdout.trim());
 		await publishDiagnosticsFromJson(stdout.trim(), analyzedPath, output);
 	} else {
@@ -139,6 +151,13 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 		vscode.window.showWarningMessage('No workspace folder to analyze.');
 		return;
 	}
+	// Require mago.toml before running workspace analysis
+	const tomlPath = path.join(folder, 'mago.toml');
+	if (!fs.existsSync(tomlPath)) {
+		await maybeOfferInit(folder, output);
+		return;
+	}
+	warnIfVendorNotIgnored(folder);
 	const mago = await resolveMagoBinary();
 	if (!mago) {
 		vscode.window.showErrorMessage('Could not resolve mago binary.');
@@ -146,8 +165,10 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 	}
 	const cfg = getConfig();
 	const args: string[] = ['analyze'];
-	args.push('--reporting-format', cfg.reportingFormat);
-	args.push('--reporting-target', cfg.reportingTarget);
+	if (!cfg.fixEnabled) {
+		args.push('--reporting-format', 'json');
+		args.push('--reporting-target', 'stdout');
+	}
 	if (cfg.minimumFailLevel) {args.push('--minimum-fail-level', cfg.minimumFailLevel);}
 	if (cfg.fixableOnly) {args.push('--fixable-only');}
 	if (cfg.fixEnabled) {
@@ -178,7 +199,7 @@ async function analyzeWorkspace(output: vscode.OutputChannel): Promise<void> {
 	currentWorkspaceChild = null;
 	output.appendLine(`[mago] exit=${exit}`);
 	if (stderr.trim()) {output.appendLine(`[mago][stderr] ${stderr.trim()}`);}
-	if (stdout.trim()) {
+	if (!cfg.fixEnabled && stdout.trim()) {
 		// Batch update diagnostics for all files in the payload
 		await publishWorkspaceDiagnostics(stdout.trim(), output);
 		// Performance diagnostics
@@ -368,19 +389,19 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(hello);
 
-	// Command to run analysis (we'll update status bar text around it)
-	const runWithStatus = async () => {
-		status.text = 'Mago: Analyzing…';
+	// Command to run analysis for the active file
+	const runFileWithStatus = async () => {
+		status.text = 'Mago: Analyzing file…';
 		try {
-			await runWorkspaceSingleFlight(output);
+			await analyzeActiveFile(output);
 		} catch (e: any) {
-			vscode.window.showErrorMessage(`Mago analyze failed: ${e?.message || e}`);
+			vscode.window.showErrorMessage(`Mago file analyze failed: ${e?.message || e}`);
 			output.appendLine(String(e));
 		} finally {
 			status.text = 'Mago: Idle';
 		}
 	};
-	const analyzeCmd = vscode.commands.registerCommand('mago.analyzeFile', runWithStatus);
+	const analyzeCmd = vscode.commands.registerCommand('mago.analyzeFile', runFileWithStatus);
 	context.subscriptions.push(analyzeCmd);
 
 	// Workspace analysis command
@@ -455,10 +476,92 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
-	// Initial run on startup (workspace-wide for full symbol context)
+	// Initial run on startup (workspace-wide for full symbol context) unless manual
 	setTimeout(() => {
-		vscode.commands.executeCommand('mago.analyzeWorkspace');
+		const cfg = getConfig();
+		if (cfg.runOn !== 'manual') {
+			vscode.commands.executeCommand('mago.analyzeWorkspace');
+		}
 	}, 1000);
 }
 
 export function deactivate() { }
+
+// Suggest creating a mago.toml when none is present
+async function maybeOfferInit(folder: string, output: vscode.OutputChannel) {
+	const choice = await vscode.window.showWarningMessage(
+		'Mago: mago.toml was not found in this workspace. Initialize configuration?',
+		'Create mago.toml from template',
+		'Cancel'
+	);
+	if (choice === 'Create mago.toml from template') {
+		await createTomlFromComposerTemplate(folder);
+	}
+}
+
+async function createTomlFromComposerTemplate(folder: string) {
+	try {
+		const tomlPath = path.join(folder, 'mago.toml');
+		if (fs.existsSync(tomlPath)) {
+			vscode.window.showInformationMessage('Mago: mago.toml already exists.');
+			return;
+		}
+		let packageName = undefined as string | undefined;
+		let phpVersion = undefined as string | undefined;
+		try {
+			const composerPath = path.join(folder, 'composer.json');
+			if (fs.existsSync(composerPath)) {
+				const composer = JSON.parse(fs.readFileSync(composerPath, 'utf8')) as any;
+				packageName = typeof composer?.name === 'string' ? composer.name : undefined;
+				const platformPhp: string | undefined = composer?.config?.platform?.php;
+				const requirePhp: string | undefined = composer?.require?.php;
+				const constraint: string | undefined = platformPhp || requirePhp;
+				phpVersion = constraint ? derivePhpVersionFromConstraint(constraint) : undefined;
+			}
+		} catch { }
+		const header = ['# Generated by Mago VS Code extension', packageName ? `# Project: ${packageName}` : undefined]
+			.filter(Boolean)
+			.join('\n');
+		const resolvedPhpVersion = phpVersion || '8.4.0';
+		const TEMPLATE = `# Welcome to Mago!\n# For full documentation, see https://mago.carthage.software/tools/overview\nphp-version = "${resolvedPhpVersion}"\n\n[source]\n# Source roots for analysis\npaths = ["src/"]\n# Additional include paths (e.g. vendor)\nincludes = ["vendor"]\n\n[formatter]\nprint-width = 120\ntab-width = 4\nuse-tabs = false\n\n[linter]\n# External tooling integrations (empty by default)\nintegrations = []\n\n[linter.rules]\n# Example rule overrides\nambiguous-function-call = { enabled = false }\nliteral-named-argument = { enabled = false }\nhalstead = { effort-threshold = 7000 }\n\n[analyzer]\n# General options\n# excludes: A list of paths or glob patterns to exclude from analysis. (default: [])\nexcludes = [\n    "vendor/**"\n]\n# ignore: A list of issue codes to ignore globally, e.g. "mixed-argument" (default: [])\n# ignore = [\n#   "mixed-argument"\n# ]\n\n# Feature flags (defaults shown in comments)\n# find-unused-expressions: Find expressions whose results are not used. (default: true)\nfind-unused-expressions = false\n# find-unused-definitions: Find unused definitions (e.g., unused private methods). (default: true)\nfind-unused-definitions = true\n# analyze-dead-code: Analyze code that appears unreachable. (default: true)\nanalyze-dead-code = false\n# check-throws: Check for unhandled thrown exceptions not documented with @throws. (default: true)\ncheck-throws = true\n# allow-possibly-undefined-array-keys: Allow accessing possibly undefined array keys. (default: true)\nallow-possibly-undefined-array-keys = true\n# perform-heuristic-checks: Perform extra heuristic checks for potential issues. (default: true)\nperform-heuristic-checks = true\n# memoize-properties: Track literal values of class properties (may increase memory). (default: false)\n# memoize-properties = false\n\n# Issue categories (all default to true)\n# mixed-issues = true            # Mixed type usage\n# falsable-issues = true         # Possibly false values\n# nullable-issues = true         # Possibly null values\n# redundancy-issues = true       # Redundant code\n# reference-issues = true        # By-reference variables\n# unreachable-issues = true      # Unreachable code\n# deprecation-issues = true      # Deprecated code usage\n# impossibility-issues = true    # Logically impossible conditions\n# ambiguity-issues = true        # Ambiguous constructs\n# existence-issues = true        # Symbol existence problems\n# template-issues = true         # Generic template types\n# argument-issues = true         # Function arguments\n# operand-issues = true          # Expression operands\n# property-issues = true         # Class properties\n# generator-issues = true        # Generators\n# array-issues = true            # Array operations\n# return-issues = true           # Function/method return types\n# method-issues = true           # Methods and their usage\n# iterator-issues = true         # Iterators\n`;
+		const content = `${header}\n\n${TEMPLATE}`;
+		fs.writeFileSync(tomlPath, content, { encoding: 'utf8' });
+		vscode.window.showInformationMessage('Mago: created mago.toml from template.');
+		vscode.window.showTextDocument(vscode.Uri.file(tomlPath));
+	} catch (e: any) {
+		vscode.window.showErrorMessage(`Mago: failed to create mago.toml: ${e?.message || e}`);
+	}
+}
+
+function derivePhpVersionFromConstraint(constraint: string): string | undefined {
+	// Extract all semantic versions like 8.1, 8.1.2, 7.4, etc., pick the highest
+	const matches = [...constraint.matchAll(/(\d+)\.(\d+)(?:\.(\d+))?/g)];
+	if (matches.length === 0) { return undefined; }
+	let best: { major: number; minor: number; patch: number } | undefined;
+	for (const m of matches) {
+		const major = Number(m[1]);
+		const minor = Number(m[2]);
+		const patch = m[3] !== undefined ? Number(m[3]) : 0;
+		if (!best) { best = { major, minor, patch }; continue; }
+		if (major > best.major || (major === best.major && (minor > best.minor || (minor === best.minor && patch > best.patch)))) {
+			best = { major, minor, patch };
+		}
+	}
+	if (!best) { return undefined; }
+	return `${best.major}.${best.minor}.${best.patch}`;
+}
+
+// Warn if vendor exists but is not ignored in mago.toml excludes
+function warnIfVendorNotIgnored(folder: string) {
+	try {
+		const vendorDir = path.join(folder, 'vendor');
+		if (!fs.existsSync(vendorDir)) { return; }
+		const tomlPath = path.join(folder, 'mago.toml');
+		if (!fs.existsSync(tomlPath)) { return; }
+		const text = fs.readFileSync(tomlPath, 'utf8');
+		// Heuristic: warn if no mention of 'vendor' in the file
+		if (!/vendor[\/-]/i.test(text) && !/"vendor"/i.test(text)) {
+			vscode.window.showWarningMessage('Mago: vendor/ detected but not ignored in mago.toml excludes. Consider excluding vendor for cleaner reporting.');
+		}
+	} catch { }
+}
