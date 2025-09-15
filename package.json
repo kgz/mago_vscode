@@ -12,35 +12,107 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onLanguage:php",
-    "onCommand:mago.analyzeFile",
-    "onCommand:mago.analyzeWorkspace"
+    "onLanguage:php"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      { "command": "mago-problems.helloWorld", "title": "Hello World" },
-      { "command": "mago.analyzeFile", "title": "Mago: Analyze Current File" },
-      { "command": "mago.analyzeWorkspace", "title": "Mago: Analyze Workspace" }
+      {
+        "command": "mago-problems.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "mago.analyzeFile",
+        "title": "Mago: Analyze Current File"
+      },
+      {
+        "command": "mago.analyzeWorkspace",
+        "title": "Mago: Analyze Workspace"
+      }
     ],
     "configuration": {
       "title": "Mago",
       "properties": {
-        "mago.path": { "type": "string", "default": "", "description": "Absolute path to mago binary (optional)" },
-        "mago.analyzer.args": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Extra CLI args for mago analyzer" },
-        "mago.runOn": { "type": "string", "enum": ["save", "type", "manual"], "default": "save", "description": "When to run analysis" },
-        "mago.debounceMs": { "type": "number", "default": 400, "minimum": 0, "description": "Debounce milliseconds for on-type analysis" },
-        "mago.autodiscoverVendor": { "type": "boolean", "default": true, "description": "Try to resolve vendor/bin/mago if composer.json exists in workspace" },
-        "mago.minimumFailLevel": { "type": "string", "enum": ["note","help","warning","error"], "default": "error", "description": "Minimum issue level that causes non-zero exit" },
-        "mago.fix.enabled": { "type": "boolean", "default": false, "description": "Apply fixes (runs with --fix)" },
-        "mago.fix.dryRun": { "type": "boolean", "default": true, "description": "Use --dry-run when fixing" },
-        "mago.fix.formatAfterFix": { "type": "boolean", "default": false, "description": "Use --format-after-fix with --fix" },
-        "mago.fixableOnly": { "type": "boolean", "default": false, "description": "Filter to only fixable issues (--fixable-only)" }
-        ,
-        "mago.debug.dryRun": { "type": "boolean", "default": true, "description": "[Debug] Log analyzer command without executing it" }
-        ,
-        "mago.apply.allowUnsafe": { "type": "boolean", "default": false, "description": "Allow applying suggestions marked Unsafe" },
-        "mago.apply.allowPotentiallyUnsafe": { "type": "boolean", "default": false, "description": "Allow applying suggestions marked PotentiallyUnsafe" }
+        "mago.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to mago binary. Leave blank to auto-detect from composer (vendor/bin/mago)."
+        },
+        "mago.analyzer.args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra CLI args for mago analyzer"
+        },
+        "mago.runOn": {
+          "type": "string",
+          "enum": [
+            "save",
+            "type",
+            "manual"
+          ],
+          "default": "save",
+          "description": "When to run analysis"
+        },
+        "mago.debounceMs": {
+          "type": "number",
+          "default": 400,
+          "minimum": 0,
+          "description": "Debounce milliseconds for on-type analysis"
+        },
+        "mago.autodiscoverVendor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-detect vendor/bin/mago in the workspace (composer projects)"
+        },
+        "mago.minimumFailLevel": {
+          "type": "string",
+          "enum": [
+            "note",
+            "help",
+            "warning",
+            "error"
+          ],
+          "default": "error",
+          "description": "Minimum issue level that causes non-zero exit"
+        },
+        "mago.fix.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Apply fixes (runs with --fix)"
+        },
+        "mago.fix.dryRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use --dry-run when fixing"
+        },
+        "mago.fix.formatAfterFix": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use --format-after-fix with --fix"
+        },
+        "mago.fixableOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Filter to only fixable issues (--fixable-only)"
+        },
+        "mago.debug.dryRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "[Debug] Log analyzer command without executing it"
+        },
+        "mago.apply.allowUnsafe": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow applying suggestions marked Unsafe"
+        },
+        "mago.apply.allowPotentiallyUnsafe": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow applying suggestions marked PotentiallyUnsafe"
+        }
       }
     }
   },
