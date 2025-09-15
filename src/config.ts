@@ -8,12 +8,7 @@ export interface MagoExtensionConfig {
 	magoPath: string;
 	analyzerArgs: string[];
 	runOn: RunOnMode;
-	autodiscoverVendor: boolean;
 	minimumFailLevel: string;
-	fixEnabled: boolean;
-	fixDryRun: boolean;
-	formatAfterFix: boolean;
-	fixableOnly: boolean;
 	dryRun: boolean;
 	debounceMs: number;
 	allowUnsafe: boolean;
@@ -26,12 +21,7 @@ export function getConfig(): MagoExtensionConfig {
 		magoPath: cfg.get<string>('path') || '',
 		analyzerArgs: cfg.get<string[]>('analyzer.args') || [],
 		runOn: cfg.get<RunOnMode>('runOn') || 'save',
-		autodiscoverVendor: cfg.get<boolean>('autodiscoverVendor') ?? true,
 		minimumFailLevel: cfg.get<string>('minimumFailLevel') || 'error',
-		fixEnabled: cfg.get<boolean>('fix.enabled') || false,
-		fixDryRun: cfg.get<boolean>('fix.dryRun') ?? true,
-		formatAfterFix: cfg.get<boolean>('fix.formatAfterFix') || false,
-		fixableOnly: cfg.get<boolean>('fixableOnly') || false,
 		dryRun: cfg.get<boolean>('debug.dryRun') ?? true,
 		debounceMs: cfg.get<number>('debounceMs') ?? 400,
 		allowUnsafe: cfg.get<boolean>('apply.allowUnsafe') ?? false,
@@ -40,21 +30,19 @@ export function getConfig(): MagoExtensionConfig {
 }
 
 export async function resolveMagoBinary(): Promise<string | null> {
-	const { magoPath, autodiscoverVendor } = getConfig();
+	const { magoPath } = getConfig();
 	if (magoPath) {
 		return magoPath;
 	}
-	if (autodiscoverVendor) {
-		const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-		if (folder) {
-			const vendorCandidates = [
-				path.join(folder, 'vendor', 'bin', 'mago'),
-				path.join(folder, 'vendor', 'bin', 'mago.exe'),
-				path.join(folder, 'vendor', 'carthage-software', 'mago', 'bin', 'mago'),
-			];
-			for (const candidate of vendorCandidates) {
-				try { if (fs.existsSync(candidate)) { return candidate; } } catch { }
-			}
+	const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+	if (folder) {
+		const vendorCandidates = [
+			path.join(folder, 'vendor', 'bin', 'mago'),
+			path.join(folder, 'vendor', 'bin', 'mago.exe'),
+			path.join(folder, 'vendor', 'carthage-software', 'mago', 'bin', 'mago'),
+		];
+		for (const candidate of vendorCandidates) {
+			try { if (fs.existsSync(candidate)) { return candidate; } } catch { }
 		}
 	}
 	return 'mago';

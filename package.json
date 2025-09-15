@@ -62,11 +62,6 @@
           "minimum": 0,
           "description": "Debounce milliseconds for on-type analysis"
         },
-        "mago.autodiscoverVendor": {
-          "type": "boolean",
-          "default": true,
-          "description": "Auto-detect vendor/bin/mago in the workspace (composer projects)"
-        },
         "mago.minimumFailLevel": {
           "type": "string",
           "enum": [
@@ -78,26 +73,7 @@
           "default": "error",
           "description": "Minimum issue level that causes non-zero exit"
         },
-        "mago.fix.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Apply fixes (runs with --fix)"
-        },
-        "mago.fix.dryRun": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use --dry-run when fixing"
-        },
-        "mago.fix.formatAfterFix": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use --format-after-fix with --fix"
-        },
-        "mago.fixableOnly": {
-          "type": "boolean",
-          "default": false,
-          "description": "Filter to only fixable issues (--fixable-only)"
-        },
+        
         "mago.debug.dryRun": {
           "type": "boolean",
           "default": true,

@@ -22,14 +22,9 @@ export async function analyzeActiveFile(output: vscode.OutputChannel, magoDiagno
 	const cfg = getConfig();
 	const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || path.dirname(doc.uri.fsPath);
 	const args: string[] = ['analyze'];
-	if (!cfg.fixEnabled) { args.push('--reporting-format', 'json', '--reporting-target', 'stdout'); }
+	args.push('--reporting-format', 'json', '--reporting-target', 'stdout');
 	if (cfg.minimumFailLevel) { args.push('--minimum-fail-level', cfg.minimumFailLevel); }
-	if (cfg.fixableOnly) { args.push('--fixable-only'); }
-	if (cfg.fixEnabled) {
-		args.push('--fix');
-		if (cfg.fixDryRun) { args.push('--dry-run'); }
-		if (cfg.formatAfterFix) { args.push('--format-after-fix'); }
-	}
+	if (cfg.minimumFailLevel) { /* keep */ }
 	args.push(doc.uri.fsPath);
 	const extra = cfg.analyzerArgs;
 	const shellQuote = (s: string) => /[\s"'\\]/.test(s) ? `'${s.replace(/'/g, "'\\''")}'` : s;
@@ -44,7 +39,7 @@ export async function analyzeActiveFile(output: vscode.OutputChannel, magoDiagno
 	const exit = await new Promise<number>((resolve) => child.on('close', resolve));
 	output.appendLine(`[mago] exit=${exit}`);
 	if (stderr.trim()) { output.appendLine(`[mago][stderr] ${stderr.trim()}`); }
-	if (!cfg.fixEnabled && stdout.trim()) {
+	if (stdout.trim()) {
 		await publishDiagnosticsFromJson(stdout.trim(), doc.uri.fsPath, output, magoDiagnostics);
 	} else if (exit === 0 && magoDiagnostics) {
 		magoDiagnostics.set(vscode.Uri.file(doc.uri.fsPath), []);
@@ -60,14 +55,9 @@ export async function analyzeWorkspace(output: vscode.OutputChannel, magoDiagnos
 	if (!mago) { vscode.window.showErrorMessage('Could not resolve mago binary.'); return; }
 	const cfg = getConfig();
 	const args: string[] = ['analyze'];
-	if (!cfg.fixEnabled) { args.push('--reporting-format', 'json', '--reporting-target', 'stdout'); }
+	args.push('--reporting-format', 'json', '--reporting-target', 'stdout');
 	if (cfg.minimumFailLevel) { args.push('--minimum-fail-level', cfg.minimumFailLevel); }
-	if (cfg.fixableOnly) { args.push('--fixable-only'); }
-	if (cfg.fixEnabled) {
-		args.push('--fix');
-		if (cfg.fixDryRun) { args.push('--dry-run'); }
-		if (cfg.formatAfterFix) { args.push('--format-after-fix'); }
-	}
+	if (cfg.minimumFailLevel) { /* keep */ }
 	if (!fs.existsSync(path.join(folder, 'mago.toml'))) { args.push(folder); }
 	const extra = cfg.analyzerArgs;
 	const shellQuote = (s: string) => /[\s"'\\]/.test(s) ? `'${s.replace(/'/g, "'\\''")}'` : s;
@@ -85,7 +75,7 @@ export async function analyzeWorkspace(output: vscode.OutputChannel, magoDiagnos
 	currentWorkspaceChildRef.child = null;
 	output.appendLine(`[mago] exit=${exit}`);
 	if (stderr.trim()) { output.appendLine(`[mago][stderr] ${stderr.trim()}`); }
-	if (!cfg.fixEnabled && stdout.trim()) {
+	if (stdout.trim()) {
 		await publishWorkspaceDiagnostics(stdout.trim(), output, magoDiagnostics);
 		try {
 			const elapsedMs = Date.now() - startedAt;

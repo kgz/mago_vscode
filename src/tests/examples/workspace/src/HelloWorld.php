@@ -44,7 +44,6 @@ class HelloWorld
 class HelloWorld2 extends HelloWorld implements HelloWorldContract
 {
 
-    #[\Override]
     public function sayHello(int $name)
     {
 
