@@ -22,7 +22,7 @@ export function getConfig(): MagoExtensionConfig {
 		analyzerArgs: cfg.get<string[]>('analyzer.args') || [],
 		runOn: cfg.get<RunOnMode>('runOn') || 'save',
 		minimumFailLevel: cfg.get<string>('minimumFailLevel') || 'error',
-		dryRun: cfg.get<boolean>('debug.dryRun') ?? true,
+		dryRun: cfg.get<boolean>('debug.dryRun') ?? false,
 		debounceMs: cfg.get<number>('debounceMs') ?? 400,
 		allowUnsafe: cfg.get<boolean>('apply.allowUnsafe') ?? false,
 		allowPotentiallyUnsafe: cfg.get<boolean>('apply.allowPotentiallyUnsafe') ?? false,

@@ -6,7 +6,7 @@ An extension that surfaces diagnostics from Mago (PHP analyzer) directly in VS C
 
 - Workspace-wide analysis on startup, on save, or on type (configurable)
 - Vendor diagnostics filtered by default (still analyzed for symbol resolution)
-- Auto-discovery of `vendor/bin/mago`; optional explicit `mago.path`
+- Auto-discovery of `vendor/bin/mago` when `mago.path` is blank
 - Precise squiggles using byte-offset spans from Mago JSON
 - Quick Fixes for Mago suggestions (insert operations) with safety gating
 - Status bar indicator and detailed Output channel logs
@@ -27,15 +27,14 @@ An extension that surfaces diagnostics from Mago (PHP analyzer) directly in VS C
 
 ### Settings
 
-- `mago.path`: absolute path to the Mago binary (optional)
+- `mago.path`: absolute path to the Mago binary (leave blank to auto-detect from composer vendor/bin/mago)
 - `mago.runOn`: `save` | `type` | `manual` (default: `save`)
 - `mago.debounceMs`: debounce for on-type (default: 400)
 - `mago.minimumFailLevel`: `note` | `help` | `warning` | `error` (default: `error`)
-- `mago.fix.*`: flags for running with `--fix` (when executing analyzer directly)
 
 ### Debug settings
 
-- `mago.debug.dryRun`: log the analyzer command instead of executing it (default: true)
+- `mago.debug.dryRun`: log the analyzer command instead of executing it (default: false)
 
 ### Requirements
 
@@ -48,19 +47,21 @@ An extension that surfaces diagnostics from Mago (PHP analyzer) directly in VS C
 
 ### Known issues / CLI caveats
 
-- Fix mode omits JSON reporting and skips diagnostics parsing; use non-fix runs for diagnostics.
+- Fix mode is currently not supported in this extension. We always run analysis with JSON output for diagnostics. A separate "Fix" command may be added later.
 
 ### Pre-run checks
 
-- Requires `mago.toml` in the workspace root. If absent, the extension prompts to run `mago init`.
+- Requires `mago.toml` in the workspace root. If absent, the extension offers to create a template `mago.toml` (or you can create one manually).
 - Warns if `vendor/` exists but is not excluded in `mago.toml`.
 
 ### Roadmap / Next
 
-- Warn on load when no `mago.toml` is present (explain default vendor reporting behavior and how to configure)
-- Warn on load if `vendor/` is not excluded in `analyzer.excludes` in `mago.toml`
 - Add “Format File with Mago” and “Format Workspace with Mago” commands
 - Code action: open rule documentation from code
 - Multi-root workspaces: prefer nearest `vendor/bin/mago` and `mago.toml`
 - CI and tests (unit + integration)
+
+Implemented recently:
+- Prompt when no `mago.toml` is present and offer to create a template
+- Warn if `vendor/` exists but is not excluded in `mago.toml`
 
