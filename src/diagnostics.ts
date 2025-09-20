@@ -16,6 +16,7 @@ export async function publishDiagnosticsFromJson(jsonText: string, analyzedFileP
 		const level = String(issue.level || 'error').toLowerCase();
 		const severity = level === 'error' ? vscode.DiagnosticSeverity.Error : level === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Information;
 		const code = issue.code ? String(issue.code) : undefined;
+		const category: string | undefined = issue.category ? String(issue.category) : undefined;
 		const message = String(issue.message || '');
 		const ann = Array.isArray(issue.annotations) ? issue.annotations[0] : undefined;
 		const filePath: string | undefined = ann?.span?.file_id?.path || ann?.span?.file?.path || undefined;
@@ -42,6 +43,7 @@ export async function publishDiagnosticsFromJson(jsonText: string, analyzedFileP
 		const diag = new vscode.Diagnostic(range, message, severity);
 		if (code) {diag.code = `${code}`;}
 		diag.source = 'mago';
+		if (category) { (diag as any).magoCategory = category; }
 		const notes: string[] = Array.isArray(issue.notes) ? issue.notes.map((n: any) => String(n)) : [];
 		if (notes.length) {
 			const uri = vscode.Uri.file(filePath);
@@ -104,7 +106,7 @@ export async function publishWorkspaceDiagnostics(jsonText: string, output: vsco
 		(byFile.get(filePath) ?? byFile.set(filePath, []).get(filePath)!).push(diag);
 		try {
 			const start = `${range.start.line + 1}:${range.start.character + 1}`;
-			// eslint-disable-next-line no-empty
+			void start; // keep variable referenced to avoid eslint warning
 		} catch { }
 	}
 	// Clear all and replace to remove stale diagnostics

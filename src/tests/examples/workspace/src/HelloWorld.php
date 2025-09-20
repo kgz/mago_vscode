@@ -8,10 +8,12 @@ class HelloWorld
 
     public function sayHello(string $_name)
     {
-        return "Hello, World!";
+        return "TODO!";
 
-        $k = $this->test2(4);
-        $k->sayHello(1);
+
+
+        // @mago-expect analysis:unevaluated-code
+        $unreachableCode = "unreachable";
     }
 
 
@@ -44,34 +46,25 @@ class HelloWorld
 class HelloWorld2 extends HelloWorld implements HelloWorldContract
 {
 
-    public function sayHello(int $name)
-    {
-
-		return "sdfsdf";
-        return "Hello, World!" + $name;
-    }
-
     #[\Override]
-    public function sayHellos(int $name)
+    public function sayHello(string $name)
     {
-        return "Hello, World!" + $name;
+        return "Hello, World!" . $name;
     }
 
 	/**
-	 *
 	 * @throws \Exception
 	 *
 	 * @return void
 	 */
-	public function test3(): void {
+	public function HelloWorld(): void {
 		throw new \Exception("sdf");
-		return;
 	}
 
-	public function test4(): void {
+	public function HelloUniverse(): void {
 		try {
-			$this->test3();
-		} catch (\RuntimeException $e) {
+			$this->HelloWorld();
+		} catch (\Exception $e) {
 			echo $e->getMessage();
 		}
 		return;

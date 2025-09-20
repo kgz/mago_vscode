@@ -99,6 +99,19 @@ export function activate(context: vscode.ExtensionContext) {
 	// Code actions
 	registerCodeActions(context);
 
+	// After toml change: save and re-run workspace analysis
+	context.subscriptions.push(vscode.commands.registerCommand('mago.reanalyzeAfterTomlChange', async (uri?: vscode.Uri) => {
+		try {
+			if (uri) {
+				const doc = await vscode.workspace.openTextDocument(uri);
+				if (doc.isDirty) { await doc.save(); }
+			}
+			await runWorkspaceSingleFlight(output);
+		} catch (e: any) {
+			vscode.window.showErrorMessage(`Mago: failed to reanalyze after mago.toml change: ${e?.message || e}`);
+		}
+	}));
+
 	// Initial run on startup (workspace-wide) unless manual
 	setTimeout(() => {
 		const cfg = getConfig();
