@@ -1,67 +1,149 @@
-## Mago for VS Code (Preview)
+# Mago (Unofficial) - VS Code Extension
 
-An extension that surfaces diagnostics from Mago (PHP analyzer) directly in VS Code with fast, workspace-wide analysis and inline quick fixes.
+> **Unofficial VS Code extension for Mago PHP analyzer** - Get instant code analysis, quick fixes, and intelligent diagnostics directly in your editor.
 
-### Features
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
+[![Downloads](https://img.shields.io/badge/downloads-0+-green.svg)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
 
-- Workspace-wide analysis on startup, on save, or on type (configurable)
-- Vendor diagnostics filtered by default (still analyzed for symbol resolution)
-- Auto-discovery of `vendor/bin/mago` when `mago.path` is blank
-- Precise squiggles using byte-offset spans from Mago JSON
-- Quick Fixes for Mago suggestions (insert operations) with safety gating
-- Status bar indicator and detailed Output channel logs
-- Performance diagnostics (elapsed ms, issue count)
-- Aggressive re-run: cancels in-flight analysis on new saves/changes
+## 🚀 Features
 
-### Commands
+### ⚡ **Real-time Analysis**
+- **Workspace-wide analysis** on startup, save, or as you type
+- **Instant diagnostics** with precise error highlighting
+- **Auto-discovery** of Mago binary from Composer
+- **Performance optimized** with smart re-analysis
 
-- Mago: Analyze Workspace (`mago.analyzeWorkspace`)
-- Mago: Analyze Current File (`mago.analyzeFile`)
+### 🔧 **Smart Quick Fixes**
+- **One-click fixes** for common issues
+- **Safety gating** for potentially unsafe suggestions
+- **Configurable safety levels** (Safe, Potentially Unsafe, Unsafe)
+- **Intelligent code suggestions** from Mago
 
-### Default Behavior
+### 🎯 **Issue Suppression**
+- **Line-level suppression** with `@mago-expect` and `@mago-ignore`
+- **Block-level suppression** for code blocks
+- **Workspace-wide suppression** via `mago.toml`
+- **Configurable visibility** for each suppression type
 
-- On startup: runs workspace analysis once VS Code finishes loading (skipped when `mago.runOn` = `manual`)
-- On save (default): runs workspace analysis; can switch to on type or manual
-- Vendor reporting: diagnostics from `vendor/` and `vendor-bin/` are hidden from Problems by default (unless configured later via `mago.toml`); vendor is still analyzed internally for resolution
-- If `mago.toml` exists at the workspace root, we let Mago discover paths (we don’t pass the workspace path to the CLI); otherwise we pass the workspace folder path
+## 🛠️ Commands
 
-### Settings
+| Command | Description | Shortcut |
+|---------|-------------|----------|
+| `Mago: Analyze Workspace` | Run analysis on entire workspace | - |
+| `Mago: Analyze Current File` | Run analysis on current file | - |
 
-- `mago.path`: absolute path to the Mago binary (leave blank to auto-detect from composer vendor/bin/mago)
-- `mago.runOn`: `save` | `type` | `manual` (default: `save`)
-- `mago.debounceMs`: debounce for on-type (default: 400)
-- `mago.minimumFailLevel`: `note` | `help` | `warning` | `error` (default: `error`)
+## ⚙️ Configuration
 
-### Debug settings
+### Core Settings
 
-- `mago.debug.dryRun`: log the analyzer command instead of executing it (default: false)
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `mago.path` | Path to Mago binary (blank = auto-detect) | `""` |
+| `mago.runOn` | When to run analysis | `save` |
+| `mago.debounceMs` | Debounce delay for on-type analysis | `400` |
+| `mago.minimumFailLevel` | Minimum issue level to show | `error` |
 
-### Requirements
+### Analysis Settings
 
-- Mago CLI installed, or available at `vendor/bin/mago` in the workspace
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `mago.analysis.apply.allowUnsafe` | Allow unsafe suggestions | `false` |
+| `mago.analysis.apply.allowPotentiallyUnsafe` | Allow potentially unsafe suggestions | `false` |
 
-### Notes
+### Suppression Settings
 
-- Quick Fix currently applies suggestion insert operations only. More operation kinds can be added.
-- Diagnostics show source `mago` and code from Mago (e.g., `missing-override-attribute`).
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `mago.analysis.suppress.showLineExpect` | Show line-level expect actions | `true` |
+| `mago.analysis.suppress.showLineIgnore` | Show line-level ignore actions | `true` |
+| `mago.analysis.suppress.showBlockIgnore` | Show block-level ignore actions | `true` |
+| `mago.analysis.suppress.showBlockExpect` | Show block-level expect actions | `true` |
+| `mago.analysis.suppress.showWorkspaceIgnore` | Show workspace ignore actions | `true` |
 
-### Known issues / CLI caveats
+## 📋 Requirements
 
-- Fix mode is currently not supported in this extension. We always run analysis with JSON output for diagnostics. A separate "Fix" command may be added later.
+- **Mago CLI** installed and available
+- **PHP project** with Composer (recommended)
+- **VS Code** 1.103.0 or higher
 
-### Pre-run checks
+## 🚀 Quick Start
 
-- Requires `mago.toml` in the workspace root. If absent, the extension offers to create a template `mago.toml` (or you can create one manually).
-- Warns if `vendor/` exists but is not excluded in `mago.toml`.
+1. **Install the extension** from the VS Code Marketplace
+2. **Ensure Mago is installed** in your project:
+   ```bash
+   composer require --dev mago/mago
+   ```
+3. **Create a `mago.toml`** file in your project root (extension will help you create one)
+4. **Start coding!** The extension will automatically analyze your PHP files
 
-### Roadmap / Next
+## 📁 Project Structure
 
-- Add “Format File with Mago” and “Format Workspace with Mago” commands
-- Code action: open rule documentation from code
-- Multi-root workspaces: prefer nearest `vendor/bin/mago` and `mago.toml`
-- CI and tests (unit + integration)
+```
+your-project/
+├── mago.toml          # Mago configuration
+├── vendor/
+│   └── bin/
+│       └── mago       # Mago binary (auto-detected)
+└── src/
+    └── your-php-files.php
+```
 
-Implemented recently:
-- Prompt when no `mago.toml` is present and offer to create a template
-- Warn if `vendor/` exists but is not excluded in `mago.toml`
+## 🔍 How It Works
+
+1. **Analysis Trigger**: Extension runs Mago analysis based on your `mago.runOn` setting
+2. **Issue Detection**: Mago scans your PHP code for issues and violations
+3. **Diagnostic Display**: Issues appear as squiggles in the editor and in the Problems panel
+4. **Quick Fixes**: Click the lightbulb icon to apply suggested fixes
+5. **Suppression**: Use code actions to suppress specific issues
+
+## 🎛️ Analysis Modes
+
+- **On Save** (default): Analyzes when you save files
+- **On Type**: Analyzes as you type (with debouncing)
+- **Manual**: Only analyzes when you run commands
+
+## 🛡️ Safety Features
+
+- **Vendor Filtering**: Third-party code is analyzed but not shown in Problems
+- **Safety Gating**: Unsafe suggestions are disabled by default
+- **Configurable Levels**: Choose which safety levels to allow
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Extension not working?**
+- Check if Mago is installed: `composer show mago/mago`
+- Verify `mago.toml` exists in project root
+- Check the Output panel for error messages
+
+**Analysis not running?**
+- Ensure `mago.runOn` is set correctly
+- Check if Mago binary path is correct
+- Try running "Mago: Analyze Workspace" manually
+
+**Too many issues?**
+- Adjust `mago.minimumFailLevel` setting
+- Use suppression actions to hide specific issues
+- Configure `mago.toml` to exclude directories
+
+## 📚 Learn More
+
+- [Mago Documentation](https://github.com/mago/mago) - Official Mago analyzer docs
+- [VS Code Extension API](https://code.visualstudio.com/api) - VS Code extension development
+- [PHP Best Practices](https://www.php.net/manual/en/) - PHP coding standards
+
+## 🤝 Contributing
+
+This is an unofficial extension. For issues and feature requests, please visit the [GitHub repository](https://github.com/kgz/mago_vscode).
+
+## 📄 License
+
+This extension is licensed under the **MIT License**. The Mago PHP analyzer is also licensed under the MIT License.
+
+See [LICENSE](LICENSE) file for details.
+
+---
+
+**Made with ❤️ for the PHP community**
 
