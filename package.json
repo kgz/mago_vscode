@@ -75,15 +75,40 @@
         },
         
         
-        "mago.apply.allowUnsafe": {
+        "mago.analysis.apply.allowUnsafe": {
           "type": "boolean",
           "default": false,
           "description": "Allow applying suggestions marked Unsafe"
         },
-        "mago.apply.allowPotentiallyUnsafe": {
+        "mago.analysis.apply.allowPotentiallyUnsafe": {
           "type": "boolean",
           "default": false,
           "description": "Allow applying suggestions marked PotentiallyUnsafe"
+        },
+        "mago.analysis.suppress.showLineExpect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Suppress with @mago-expect (next line)' action"
+        },
+        "mago.analysis.suppress.showLineIgnore": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Suppress with @mago-ignore (next line)' action"
+        },
+        "mago.analysis.suppress.showBlockIgnore": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Suppress block with @mago-ignore' action"
+        },
+        "mago.analysis.suppress.showBlockExpect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Expect issue for block with @mago-expect' action"
+        },
+        "mago.analysis.suppress.showWorkspaceIgnore": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Ignore in workspace (mago.toml)' action"
         }
       }
     }
