@@ -11,7 +11,6 @@ class BaseController
     {
         $response = new Response();
         $response = $response->withStatus(200);
-        // @mago-expect analysis:invalid-return-statement
         return $response;
     }
 }
