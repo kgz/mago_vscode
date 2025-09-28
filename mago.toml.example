@@ -1,0 +1,47 @@
+# Example mago.toml configuration file
+# This file demonstrates the structure and options available for Mago static analysis
+
+name = "my-php-project"
+php = "8.4"
+
+# Paths to analyze
+paths = [
+    "src/",
+    "app/",
+    "lib/"
+]
+
+# Paths to exclude from analysis
+exclude = [
+    "vendor/",
+    "tests/",
+    "cache/",
+    "storage/"
+]
+
+# Rule configuration
+[rules]
+# Issues to ignore globally
+ignore = [
+    "analysis:unhandled-thrown-type",
+    "analysis:invalid-operand"
+]
+
+# Issues that are expected to occur
+expect = [
+    "analysis:invalid-return-statement"
+]
+
+# Analysis options
+strict = true
+parallel = true
+
+# Cache configuration
+[cache]
+enabled = true
+directory = ".mago-cache"
+
+# Output configuration
+[output]
+format = "json"
+# file = "mago-results.json"  # Optional output file

@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 /**
- * Creates a workspace edit that inserts a pragma comment on the line after the specified line
+ * Creates a workspace edit that inserts a pragma comment above the problematic line
  * This is used for adding @mago-expect or @mago-ignore comments
  */
 export function createLinePragmaEdit(
@@ -13,15 +13,70 @@ export function createLinePragmaEdit(
 ): vscode.WorkspaceEdit {
     const workspaceEdit = new vscode.WorkspaceEdit();
     
-    // Insert the pragma on the line after the current line
-    const insertLineNumber = lineNumber + 1;
-    const insertPosition = new vscode.Position(insertLineNumber, 0);
+    // Check if there's already a suppression comment above this line
+    const existingSuppression = findExistingSuppressionAbove(document, lineNumber);
     
-    // Add the pragma comment with a newline
-    const pragmaWithNewline = `${pragmaComment}\n`;
-    workspaceEdit.insert(document.uri, insertPosition, pragmaWithNewline);
+    if (existingSuppression) {
+        // Extract the issue code from the new pragma comment
+        const newIssueCode = extractIssueCodeFromPragma(pragmaComment);
+        
+        // Check if this issue code is already suppressed above
+        if (existingSuppression.issueCodes.includes(newIssueCode)) {
+            // Issue already suppressed, no need to add it again
+            return workspaceEdit;
+        }
+        
+        // Insert a new suppression comment line above the existing one
+        const insertPosition = new vscode.Position(existingSuppression.lineNumber, 0);
+        const newSuppressionLine = `        // ${pragmaComment}\n`;
+        workspaceEdit.insert(document.uri, insertPosition, newSuppressionLine);
+    } else {
+        // Create new suppression comment above the line with proper indentation
+        const phpComment = `// ${pragmaComment}`;
+        const insertPosition = new vscode.Position(lineNumber, 0);
+        workspaceEdit.insert(document.uri, insertPosition, `        ${phpComment}\n`);
+    }
     
     return workspaceEdit;
+}
+
+/**
+ * Finds existing suppression comment above a line
+ * Returns information about the comment if found
+ */
+function findExistingSuppressionAbove(document: vscode.TextDocument, lineNumber: number): { lineNumber: number; issueCodes: string[] } | null {
+    // Look for suppression comments in the lines above (up to 3 lines above)
+    for (let i = Math.max(0, lineNumber - 3); i < lineNumber; i++) {
+        const line = document.lineAt(i);
+        const lineText = line.text.trim();
+        
+        // Look for existing @mago-expect or @mago-ignore comments
+        const suppressionPattern = /\/\/\s*@mago-(expect|ignore)\s+([^\/\n]+)/;
+        const match = suppressionPattern.exec(lineText);
+        
+        if (match) {
+            const issueCodesText = match[2].trim();
+            
+            // Parse comma-separated issue codes (in case there are any)
+            const issueCodes = issueCodesText.split(',').map(code => code.trim()).filter(code => code.length > 0);
+            
+            return {
+                lineNumber: i,
+                issueCodes: issueCodes
+            };
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Extracts the issue code from a pragma comment string
+ */
+function extractIssueCodeFromPragma(pragmaComment: string): string {
+    // Extract issue code from "@mago-expect analysis:issue-code" format
+    const match = pragmaComment.match(/@mago-(expect|ignore)\s+(.+)/);
+    return match ? match[2].trim() : pragmaComment;
 }
 
 /**

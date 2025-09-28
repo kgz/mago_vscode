@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/kgz/mago_vscode/main/mago.toml.schema.json",
+  "title": "Mago Configuration Schema",
+  "description": "Schema for mago.toml configuration files used by the Mago static analysis tool",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the project being analyzed"
+    },
+    "php": {
+      "type": "string",
+      "description": "The PHP version to use for analysis",
+      "pattern": "^\\d+\\.\\d+$",
+      "examples": ["8.1", "8.2", "8.3", "8.4"]
+    },
+    "paths": {
+      "type": "array",
+      "description": "Array of paths to analyze",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["src/", "app/", "lib/"]]
+    },
+    "exclude": {
+      "type": "array",
+      "description": "Array of paths to exclude from analysis",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["vendor/", "tests/", "cache/"]]
+    },
+    "rules": {
+      "type": "object",
+      "description": "Configuration for specific analysis rules",
+      "properties": {
+        "ignore": {
+          "type": "array",
+          "description": "Array of issue codes to ignore globally",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+:[a-z-]+$",
+            "examples": ["analysis:unhandled-thrown-type", "analysis:invalid-operand", "analysis:invalid-return-statement"]
+          }
+        },
+        "expect": {
+          "type": "array",
+          "description": "Array of issue codes that are expected to occur",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+:[a-z-]+$",
+            "examples": ["analysis:unhandled-thrown-type", "analysis:invalid-operand"]
+          }
+        }
+      }
+    },
+    "strict": {
+      "type": "boolean",
+      "description": "Enable strict mode for more thorough analysis",
+      "default": false
+    },
+    "parallel": {
+      "type": "boolean",
+      "description": "Enable parallel analysis for faster processing",
+      "default": true
+    },
+    "cache": {
+      "type": "object",
+      "description": "Cache configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable caching of analysis results",
+          "default": true
+        },
+        "directory": {
+          "type": "string",
+          "description": "Directory to store cache files",
+          "default": ".mago-cache"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "description": "Output configuration",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["json", "text", "sarif"],
+          "description": "Output format for analysis results",
+          "default": "json"
+        },
+        "file": {
+          "type": "string",
+          "description": "Output file path (optional)"
+        }
+      }
+    }
+  },
+  "required": ["name", "php"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "name": "my-php-project",
+      "php": "8.4",
+      "paths": ["src/"],
+      "exclude": ["vendor/", "tests/"],
+      "rules": {
+        "ignore": ["analysis:unhandled-thrown-type"],
+        "expect": ["analysis:invalid-operand"]
+      },
+      "strict": true,
+      "parallel": true,
+      "cache": {
+        "enabled": true,
+        "directory": ".mago-cache"
+      },
+      "output": {
+        "format": "json"
+      }
+    }
+  ]
+}

@@ -8,13 +8,18 @@ import { workspaceAnalysisManager } from './workspaceAnalysisManager';
  */
 export class MagoEventHandlers {
     private _outputChannel: vscode.OutputChannel | null = null;
+    private _diagnosticCollection: vscode.DiagnosticCollection | null = null;
     private _pendingTimer: NodeJS.Timeout | undefined;
 
     /**
      * Initializes the event handlers with required dependencies
      */
-    public initialize(outputChannel: vscode.OutputChannel): void {
+    public initialize(
+        outputChannel: vscode.OutputChannel,
+        diagnosticCollection: vscode.DiagnosticCollection
+    ): void {
         this._outputChannel = outputChannel;
+        this._diagnosticCollection = diagnosticCollection;
     }
 
     /**
@@ -55,7 +60,7 @@ export class MagoEventHandlers {
      * Triggers analysis if configured to run on save
      */
     private handleFileSave(document: vscode.TextDocument): void {
-        if (!this._outputChannel) {
+        if (!this._outputChannel || !this._diagnosticCollection) {
             return;
         }
 
@@ -71,8 +76,8 @@ export class MagoEventHandlers {
             return;
         }
 
-        // Run workspace analysis
-        workspaceAnalysisManager.runWorkspaceAnalysis(this._outputChannel, undefined);
+        // Run workspace analysis with diagnostic collection
+        workspaceAnalysisManager.runWorkspaceAnalysis(this._outputChannel, this._diagnosticCollection);
     }
 
     /**
@@ -80,7 +85,7 @@ export class MagoEventHandlers {
      * Triggers analysis if configured to run on type (with debouncing)
      */
     private handleFileChange(event: vscode.TextDocumentChangeEvent): void {
-        if (!this._outputChannel) {
+        if (!this._outputChannel || !this._diagnosticCollection) {
             return;
         }
 
@@ -106,7 +111,7 @@ export class MagoEventHandlers {
         // Set up debounced analysis
         const debounceMs = Math.max(0, config.debounceMs);
         this._pendingTimer = setTimeout(() => {
-            workspaceAnalysisManager.runWorkspaceAnalysis(this._outputChannel!, undefined);
+            workspaceAnalysisManager.runWorkspaceAnalysis(this._outputChannel!, this._diagnosticCollection!);
         }, debounceMs);
     }
 

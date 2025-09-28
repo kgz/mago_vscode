@@ -74,18 +74,35 @@
    composer require --dev mago/mago
    ```
 3. **Create a `mago.toml`** file in your project root (extension will help you create one)
+   - Use the provided [schema](mago.toml.schema.json) for IntelliSense and validation
+   - See [mago.toml.example](mago.toml.example) for a complete configuration example
 4. **Start coding!** The extension will automatically analyze your PHP files
 
 ## 📁 Project Structure
 
 ```
 your-project/
-├── mago.toml          # Mago configuration
+├── mago.toml              # Mago configuration
+├── mago.toml.schema.json  # JSON schema for IntelliSense (optional)
 ├── vendor/
 │   └── bin/
-│       └── mago       # Mago binary (auto-detected)
+│       └── mago           # Mago binary (auto-detected)
 └── src/
     └── your-php-files.php
+```
+
+## 📋 Configuration Schema
+
+The extension includes a comprehensive JSON schema for `mago.toml` files:
+
+- **IntelliSense support** - Auto-completion and validation in VS Code
+- **Type checking** - Validates PHP versions, issue codes, and paths
+- **Documentation** - Inline help for all configuration options
+- **Examples** - Real-world configuration examples
+
+To use the schema, add this to your `mago.toml` file:
+```toml
+# @schema https://raw.githubusercontent.com/kgz/mago_vscode/main/mago.toml.schema.json
 ```
 
 ## 🔍 How It Works

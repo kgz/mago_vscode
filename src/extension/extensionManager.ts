@@ -87,7 +87,7 @@ export class MagoExtensionManager {
         );
         
         // Initialize event handlers
-        magoEventHandlers.initialize(this._outputChannel);
+        magoEventHandlers.initialize(this._outputChannel, this._diagnosticCollection);
     }
 
     /**

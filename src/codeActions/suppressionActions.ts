@@ -104,13 +104,13 @@ function createLineLevelSuppressionActions(
     const actions: vscode.CodeAction[] = [];
     
     if (settings.showLineExpect) {
-        const actionTitle = `Mago: Suppress with ${expectPragma} (next line)`;
+        const actionTitle = `Mago: Suppress with ${expectPragma} (inline)`;
         const edit = createLinePragmaEdit(document, lineNumber, expectPragma);
         actions.push(createCodeAction(actionTitle, edit));
     }
     
     if (settings.showLineIgnore) {
-        const actionTitle = `Mago: Suppress with ${ignorePragma} (next line)`;
+        const actionTitle = `Mago: Suppress with ${ignorePragma} (inline)`;
         const edit = createLinePragmaEdit(document, lineNumber, ignorePragma);
         actions.push(createCodeAction(actionTitle, edit));
     }
