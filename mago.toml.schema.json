@@ -8,37 +8,9 @@
     "php-version": {
       "type": "string",
       "description": "The version of PHP to use for parsing and analysis",
-      "pattern": "^\\d+\\.\\d+$",
-      "examples": ["8.1", "8.2", "8.3", "8.4"],
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "examples": ["8.1", "8.2", "8.3", "8.4", "8.4.0"],
       "default": "8.1"
-    },
-    "allow-unsupported-php-version": {
-      "type": "boolean",
-      "description": "Allow Mago to run on unsupported PHP versions. Not recommended",
-      "default": false
-    },
-    "threads": {
-      "type": "integer",
-      "description": "The number of threads to use for parallel tasks",
-      "minimum": 1,
-      "default": "logical CPUs"
-    },
-    "stack-size": {
-      "type": "integer",
-      "description": "The stack size in bytes for each thread. Defaults to 2MB, with a minimum of 2MB and a maximum of 8MB",
-      "minimum": 2097152,
-      "maximum": 8388608,
-      "default": 2097152
-    },
-    "use-pager": {
-      "type": "boolean",
-      "description": "Use a pager for long output",
-      "default": false
-    },
-    "pager": {
-      "type": "string",
-      "description": "The pager command to use (e.g., 'less -R')",
-      "default": null
     },
     "source": {
       "type": "object",
@@ -46,66 +18,273 @@
       "properties": {
         "paths": {
           "type": "array",
-          "description": "A list of directories to scan for source files. If empty, the entire workspace is scanned",
+          "description": "Source roots for analysis",
           "items": {
             "type": "string"
           },
-          "default": []
+          "default": ["src/"]
         },
         "includes": {
           "type": "array",
-          "description": "A list of specific files or directories to include for analysis context (e.g., vendor packages). These files will not be formatted, linted, or analyzed directly, but they provide essential context for the analyzer to understand symbols and types from third-party code",
+          "description": "Additional include paths (e.g. vendor)",
           "items": {
             "type": "string"
           },
-          "default": []
+          "default": ["vendor"]
+        }
+      }
+    },
+    "formatter": {
+      "type": "object",
+      "description": "Formatter configuration options",
+      "properties": {
+        "print-width": {
+          "type": "integer",
+          "description": "Maximum line width for formatting",
+          "default": 120
         },
-        "excludes": {
-          "type": "array",
-          "description": "A list of paths or glob patterns to exclude from scanning",
-          "items": {
-            "type": "string"
-          },
-          "default": []
+        "tab-width": {
+          "type": "integer",
+          "description": "Number of spaces per tab",
+          "default": 4
         },
-        "extensions": {
-          "type": "array",
-          "description": "A list of file extensions to consider as PHP files",
-          "items": {
-            "type": "string"
-          },
-          "default": ["php"]
+        "use-tabs": {
+          "type": "boolean",
+          "description": "Use tabs instead of spaces",
+          "default": false
         }
       }
     },
     "linter": {
       "type": "object",
       "description": "Linter configuration options",
-      "additionalProperties": true
-    },
-    "formatter": {
-      "type": "object",
-      "description": "Formatter configuration options",
-      "additionalProperties": true
+      "properties": {
+        "integrations": {
+          "type": "array",
+          "description": "External tooling integrations",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "rules": {
+          "type": "object",
+          "description": "Linter rule overrides",
+          "properties": {
+            "ambiguous-function-call": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "literal-named-argument": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "halstead": {
+              "type": "object",
+              "properties": {
+                "effort-threshold": {
+                  "type": "integer",
+                  "default": 7000
+                }
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      }
     },
     "analyzer": {
       "type": "object",
       "description": "Analyzer configuration options",
-      "additionalProperties": true
+      "properties": {
+        "excludes": {
+          "type": "array",
+          "description": "A list of paths or glob patterns to exclude from analysis",
+          "items": {
+            "type": "string"
+          },
+          "default": ["vendor/**"]
+        },
+        "ignore": {
+          "type": "array",
+          "description": "A list of issue codes to ignore globally",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "find-unused-expressions": {
+          "type": "boolean",
+          "description": "Find expressions whose results are not used",
+          "default": true
+        },
+        "find-unused-definitions": {
+          "type": "boolean",
+          "description": "Find unused definitions (e.g., unused private methods)",
+          "default": true
+        },
+        "analyze-dead-code": {
+          "type": "boolean",
+          "description": "Analyze code that appears unreachable",
+          "default": true
+        },
+        "check-throws": {
+          "type": "boolean",
+          "description": "Check for unhandled thrown exceptions not documented with @throws",
+          "default": true
+        },
+        "allow-possibly-undefined-array-keys": {
+          "type": "boolean",
+          "description": "Allow accessing possibly undefined array keys",
+          "default": true
+        },
+        "perform-heuristic-checks": {
+          "type": "boolean",
+          "description": "Perform extra heuristic checks for potential issues",
+          "default": true
+        },
+        "memoize-properties": {
+          "type": "boolean",
+          "description": "Track literal values of class properties (may increase memory)",
+          "default": false
+        },
+        "mixed-issues": {
+          "type": "boolean",
+          "description": "Mixed type usage issues",
+          "default": true
+        },
+        "falsable-issues": {
+          "type": "boolean",
+          "description": "Possibly false values issues",
+          "default": true
+        },
+        "nullable-issues": {
+          "type": "boolean",
+          "description": "Possibly null values issues",
+          "default": true
+        },
+        "redundancy-issues": {
+          "type": "boolean",
+          "description": "Redundant code issues",
+          "default": true
+        },
+        "reference-issues": {
+          "type": "boolean",
+          "description": "By-reference variables issues",
+          "default": true
+        },
+        "unreachable-issues": {
+          "type": "boolean",
+          "description": "Unreachable code issues",
+          "default": true
+        },
+        "deprecation-issues": {
+          "type": "boolean",
+          "description": "Deprecated code usage issues",
+          "default": true
+        },
+        "impossibility-issues": {
+          "type": "boolean",
+          "description": "Logically impossible conditions issues",
+          "default": true
+        },
+        "ambiguity-issues": {
+          "type": "boolean",
+          "description": "Ambiguous constructs issues",
+          "default": true
+        },
+        "existence-issues": {
+          "type": "boolean",
+          "description": "Symbol existence problems issues",
+          "default": true
+        },
+        "template-issues": {
+          "type": "boolean",
+          "description": "Generic template types issues",
+          "default": true
+        },
+        "argument-issues": {
+          "type": "boolean",
+          "description": "Function arguments issues",
+          "default": true
+        },
+        "operand-issues": {
+          "type": "boolean",
+          "description": "Expression operands issues",
+          "default": true
+        },
+        "property-issues": {
+          "type": "boolean",
+          "description": "Class properties issues",
+          "default": true
+        },
+        "generator-issues": {
+          "type": "boolean",
+          "description": "Generators issues",
+          "default": true
+        },
+        "array-issues": {
+          "type": "boolean",
+          "description": "Array operations issues",
+          "default": true
+        },
+        "return-issues": {
+          "type": "boolean",
+          "description": "Function/method return types issues",
+          "default": true
+        },
+        "method-issues": {
+          "type": "boolean",
+          "description": "Methods and their usage issues",
+          "default": true
+        },
+        "iterator-issues": {
+          "type": "boolean",
+          "description": "Iterators issues",
+          "default": true
+        }
+      }
     }
   },
   "additionalProperties": false,
   "examples": [
     {
       "php-version": "8.4",
-      "threads": 8,
-      "stack-size": 8388608,
-      "use-pager": false,
       "source": {
-        "paths": ["src", "tests"],
-        "includes": ["vendor/symfony/http-foundation"],
-        "excludes": ["src/Legacy/**", "**/*_generated.php"],
-        "extensions": ["php", "php8"]
+        "paths": ["src/"],
+        "includes": ["vendor"]
+      },
+      "formatter": {
+        "print-width": 120,
+        "tab-width": 4,
+        "use-tabs": false
+      },
+      "linter": {
+        "integrations": [],
+        "rules": {
+          "ambiguous-function-call": { "enabled": false },
+          "literal-named-argument": { "enabled": false },
+          "halstead": { "effort-threshold": 7000 }
+        }
+      },
+      "analyzer": {
+        "excludes": ["vendor/**"],
+        "find-unused-expressions": false,
+        "find-unused-definitions": true,
+        "analyze-dead-code": false,
+        "check-throws": true,
+        "allow-possibly-undefined-array-keys": true,
+        "perform-heuristic-checks": true
       }
     }
   ]

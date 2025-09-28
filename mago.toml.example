@@ -1,45 +1,75 @@
 # Example mago.toml configuration file
 # This file demonstrates the structure and options available for Mago static analysis
 
-# Global Options
+# Welcome to Mago!
+# For full documentation, see https://mago.carthage.software/tools/overview
 php-version = "8.4"
-threads = 8
-stack-size = 8388608  # 8 MB
-allow-unsupported-php-version = false
-use-pager = false
-# pager = "less -R"  # Optional pager command
 
-# Source Configuration
 [source]
-# Directories to scan for source files
-paths = ["src", "tests"]
-
-# Files/directories to include for analysis context (e.g., vendor packages)
-includes = ["vendor/symfony/http-foundation"]
-
-# Paths or glob patterns to exclude from scanning
-excludes = [
-    "src/Legacy/**",
-    "**/*_generated.php",
-    "vendor/",
-    "cache/",
-    "storage/"
-]
-
-# File extensions to consider as PHP files
-extensions = ["php", "php8"]
-
-# Tool-Specific Configuration
-# For detailed configuration options, see:
-# - Linter Configuration: https://mago.dev/docs/configuration/linter
-# - Formatter Configuration: https://mago.dev/docs/configuration/formatter  
-# - Analyzer Configuration: https://mago.dev/docs/configuration/analyzer
-
-[linter]
-# Linter-specific options go here
+# Source roots for analysis
+paths = ["src/"]
+# Additional include paths (e.g. vendor)
+includes = ["vendor"]
 
 [formatter]
-# Formatter-specific options go here
+print-width = 120
+tab-width = 4
+use-tabs = false
+
+[linter]
+# External tooling integrations (empty by default)
+integrations = []
+
+[linter.rules]
+# Example rule overrides
+ambiguous-function-call = { enabled = false }
+literal-named-argument = { enabled = false }
+halstead = { effort-threshold = 7000 }
 
 [analyzer]
-# Analyzer-specific options go here
+# General options
+# excludes: A list of paths or glob patterns to exclude from analysis. (default: [])
+excludes = [
+    "vendor/**"
+]
+# ignore: A list of issue codes to ignore globally, e.g. "mixed-argument" (default: [])
+# ignore = [
+#   "mixed-argument"
+# ]
+
+# Feature flags (defaults shown in comments)
+# find-unused-expressions: Find expressions whose results are not used. (default: true)
+find-unused-expressions = false
+# find-unused-definitions: Find unused definitions (e.g., unused private methods). (default: true)
+find-unused-definitions = true
+# analyze-dead-code: Analyze code that appears unreachable. (default: true)
+analyze-dead-code = false
+# check-throws: Check for unhandled thrown exceptions not documented with @throws. (default: true)
+check-throws = true
+# allow-possibly-undefined-array-keys: Allow accessing possibly undefined array keys. (default: true)
+allow-possibly-undefined-array-keys = true
+# perform-heuristic-checks: Perform extra heuristic checks for potential issues. (default: true)
+perform-heuristic-checks = true
+# memoize-properties: Track literal values of class properties (may increase memory). (default: false)
+# memoize-properties = false
+
+# Issue categories (all default to true)
+# mixed-issues = true            # Mixed type usage
+# falsable-issues = true         # Possibly false values
+# nullable-issues = true         # Possibly null values
+# redundancy-issues = true       # Redundant code
+# reference-issues = true        # By-reference variables
+# unreachable-issues = true      # Unreachable code
+# deprecation-issues = true      # Deprecated code usage
+# impossibility-issues = true    # Logically impossible conditions
+# ambiguity-issues = true         # Ambiguous constructs
+# existence-issues = true        # Symbol existence problems
+# template-issues = true         # Generic template types
+# argument-issues = true         # Function arguments
+# operand-issues = true          # Expression operands
+# property-issues = true         # Class properties
+# generator-issues = true        # Generators
+# array-issues = true            # Array operations
+# return-issues = true           # Function/method return types
+# method-issues = true           # Methods and their usage
+# iterator-issues = true         # Iterators

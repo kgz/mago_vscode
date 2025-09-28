@@ -11,7 +11,7 @@ php-version = "8.4.0"
 # Source roots for analysis
 paths = ["src/"]
 # Additional include paths (e.g. vendor)
-includes = ["vendor"]
+includes = ["vendor"] 
 
 [formatter]
 print-width = 120
