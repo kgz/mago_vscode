@@ -9,7 +9,7 @@ php-version = "8.4.0"
 
 [source]
 # Source roots for analysis
-paths = ["src/"]
+paths = [ "src/" ]
 # Additional include paths (e.g. vendor)
 includes = ["vendor"] 
 

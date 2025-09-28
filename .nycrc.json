@@ -1,0 +1,40 @@
+{
+  "all": true,
+  "check-coverage": true,
+  "reporter": [
+    "text",
+    "text-summary",
+    "html",
+    "lcov"
+  ],
+  "report-dir": "./coverage",
+  "temp-dir": "./.nyc_output",
+  "include": [
+    "src/codeActions/diagnosticUtils.ts",
+    "src/template/composerParser.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/tests/**/*",
+    "out/**/*",
+    "dist/**/*",
+    "node_modules/**/*"
+  ],
+  "extension": [
+    ".ts"
+  ],
+  "require": [
+    "ts-node/register"
+  ],
+  "loader": [
+    "ts-node/esm"
+  ],
+  "sourceMap": true,
+  "instrument": true,
+  "cache": true,
+  "statements": 10,
+  "branches": 10,
+  "functions": 10,
+  "lines": 10
+}

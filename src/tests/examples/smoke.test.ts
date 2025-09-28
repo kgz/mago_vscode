@@ -3,8 +3,8 @@ import * as vscode from 'vscode';
 
 suite('Mago Extension - Activation', () => {
 	test('activates successfully', async() => {
-		const ext = vscode.extensions.getExtension('kgz.mago-problems');
-		assert.ok(ext, 'Extension not found (kgz.mago-problems)');
+		const ext = vscode.extensions.getExtension('kgz.mago-unofficial');
+		assert.ok(ext, 'Extension not found (kgz.mago-unofficial)');
 		await ext!.activate();
 		assert.ok(ext!.isActive, 'Extension failed to activate');
 	});

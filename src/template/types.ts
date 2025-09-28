@@ -10,6 +10,11 @@ export interface ComposerConfig {
     };
     require?: {
         php?: string;
+        [key: string]: string | undefined;
+    };
+    'require-dev'?: {
+        php?: string;
+        [key: string]: string | undefined;
     };
 }
 

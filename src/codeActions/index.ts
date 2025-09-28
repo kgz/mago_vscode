@@ -5,7 +5,7 @@ export * from './types';
 export { createCodeSuggestionAction, isSuggestionAllowedByUserSettings } from './suggestionActions';
 
 // Export suppression action functions
-export { createIssueSuppressionActions } from './suppressionActions';
+export { createIssueSuppressionActions, getUserSuppressionSettings } from './suppressionActions';
 
 // Export diagnostic utility functions
 export { extractIssueCodeFromDiagnostic, determineIssueCategory } from './diagnosticUtils';

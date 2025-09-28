@@ -79,7 +79,7 @@ export function createIssueSuppressionActions(
 /**
  * Gets the user's suppression action preferences from VS Code settings
  */
-function getUserSuppressionSettings(): SuppressionActionSettings {
+export function getUserSuppressionSettings(): SuppressionActionSettings {
     const magoConfig = vscode.workspace.getConfiguration('mago');
     
     return {

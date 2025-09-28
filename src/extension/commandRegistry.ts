@@ -30,7 +30,7 @@ export class MagoCommandRegistry {
      */
     public registerCommands(context: vscode.ExtensionContext): void {
         // Hello World sample command
-        this.registerHelloWorldCommand(context);
+        // this.registerHelloWorldCommand(context);
         
         // File analysis command
         this.registerFileAnalysisCommand(context);
@@ -42,16 +42,16 @@ export class MagoCommandRegistry {
         this.registerTomlChangeCommand(context);
     }
 
-    /**
-     * Registers the hello world sample command
-     */
-    private registerHelloWorldCommand(context: vscode.ExtensionContext): void {
-        const command = vscode.commands.registerCommand('mago-problems.helloWorld', () => {
-            vscode.window.showInformationMessage('Hello from Mago extension');
-        });
+    // /**
+    //  * Registers the hello world sample command
+    //  */
+    // private registerHelloWorldCommand(context: vscode.ExtensionContext): void {
+    //     const command = vscode.commands.registerCommand('mago-problems.helloWorld', () => {
+    //         vscode.window.showInformationMessage('Hello from Mago extension');
+    //     });
         
-        context.subscriptions.push(command);
-    }
+    //     context.subscriptions.push(command);
+    // }
 
     /**
      * Registers the file analysis command

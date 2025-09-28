@@ -5,3 +5,5 @@ dist
 vendor
 out
 .vscode-test
+coverage
+.nyc_output
