@@ -2,8 +2,8 @@
 
 > **Unofficial VS Code extension for Mago PHP analyzer** - Get instant code analysis, quick fixes, and intelligent diagnostics directly in your editor.
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
-[![Downloads](https://img.shields.io/badge/downloads-0+-green.svg)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
+[![Version](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/kgz/mago_vscode/HEAD/package.json&query=version&label=version&color=blue)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
+[![Downloads](https://img.shields.io/vscode-marketplace/d/kgz.mago-unofficial.svg)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
 
 ## 🚀 Features
 
