@@ -7,6 +7,7 @@ import { magoEventHandlers } from './eventHandlers';
 import { magoStatusBarManager } from './statusBarManager';
 import { workspaceAnalysisManager } from './workspaceAnalysisManager';
 import { ExtensionActivationConfig } from './types';
+import { setupDIContainer, clearDIContainer } from '../di/container';
 
 /**
  * Main extension manager for the Mago VS Code extension
@@ -24,6 +25,9 @@ export class MagoExtensionManager {
      */
     public activate(context: vscode.ExtensionContext): void {
         this._context = context;
+        
+        // 🎯 Setup DI container first
+        setupDIContainer();
         
         // Create output channel
         this._outputChannel = vscode.window.createOutputChannel('Mago');
@@ -46,7 +50,7 @@ export class MagoExtensionManager {
         // Run initial analysis if configured
         this.runInitialAnalysisIfConfigured();
         
-        console.log('Mago extension activated');
+        console.log('Mago extension activated with DI');
     }
 
     /**
@@ -67,6 +71,9 @@ export class MagoExtensionManager {
         if (this._diagnosticCollection) {
             this._diagnosticCollection.clear();
         }
+        
+        // 🎯 Clean up DI container
+        clearDIContainer();
         
         console.log('Mago extension deactivated');
     }

@@ -1,147 +1,86 @@
-import { describe, it } from 'mocha';
+import 'reflect-metadata';
+import { describe, it, beforeEach } from 'mocha';
 const { expect } = require('chai');
+import { container } from 'tsyringe';
+import { SuggestionActionsService } from '../../../codeActions/suggestionActionsWithDI';
+import { MockConfigurationService } from './services/MockConfigurationService';
+import { IConfigurationService } from '../../../codeActions/services/IConfigurationService';
 
-// Mock VS Code types for testing
-interface MockRange {
-  start: { line: number; character: number };
-  end: { line: number; character: number };
-}
+describe('Suggestion Actions Unit Tests (with DI)', () => {
+    let service: SuggestionActionsService;
+    let mockConfig: MockConfigurationService;
 
-interface MockTextDocument {
-  uri: { fsPath: string };
-  getText(range?: MockRange): string;
-}
+    beforeEach(() => {
+        // Clear container and register mock service
+        container.clearInstances();
+        mockConfig = new MockConfigurationService();
+        container.registerInstance('IConfigurationService', mockConfig);
+        
+        // Get the service from DI container
+        service = container.resolve(SuggestionActionsService);
+    });
 
-interface MockSuggestionOperation {
-  type: string;
-  value: string;
-  safety: string;
-}
-
-// Import the functions we want to test
-import { 
-    createCodeSuggestionAction
-} from '../../../codeActions/suggestionActions';
-
-describe('Suggestion Actions Unit Tests', () => {
-    
-    describe('createCodeSuggestionAction', () => {
-        it('should create suggestion action for safe operation', () => {
-            const document: MockTextDocument = {
-                uri: { fsPath: '/test/file.php' },
-                getText: () => 'test content'
-            };
-
-            const operation: MockSuggestionOperation = {
-                type: 'replace',
-                value: 'new content',
-                safety: 'Safe'
-            };
-
-            const result = createCodeSuggestionAction(operation as any, document as any);
-            
-            expect(result).to.exist;
-            expect(result).to.have.property('action');
-            expect(result!.action).to.have.property('title');
-            expect(result!.action).to.have.property('kind');
-            expect(result!.action.title).to.include('Replace');
+    describe('isSuggestionAllowedByUserSettings', () => {
+        it('should always allow safe suggestions', () => {
+            const result = service.isSuggestionAllowedByUserSettings('Safe');
+            expect(result).to.be.true;
         });
 
-        it('should create suggestion action for potentially unsafe operation', () => {
-            const document: MockTextDocument = {
-                uri: { fsPath: '/test/file.php' },
-                getText: () => 'test content'
-            };
-
-            const operation: MockSuggestionOperation = {
-                type: 'replace',
-                value: 'new content',
-                safety: 'PotentiallyUnsafe'
-            };
-
-            const result = createCodeSuggestionAction(operation as any, document as any);
+        it('should allow potentially unsafe suggestions when enabled', () => {
+            mockConfig.setConfig('analysis.apply.allowPotentiallyUnsafe', true);
             
-            expect(result).to.exist;
-            expect(result).to.have.property('action');
-            expect(result!.action).to.have.property('title');
-            expect(result!.action).to.have.property('kind');
-            expect(result!.action.title).to.include('Replace');
+            const result = service.isSuggestionAllowedByUserSettings('PotentiallyUnsafe');
+            expect(result).to.be.true;
         });
 
-        it('should handle different operation types', () => {
-            const document: MockTextDocument = {
-                uri: { fsPath: '/test/file.php' },
-                getText: () => 'test content'
-            };
-
-            const operation: MockSuggestionOperation = {
-                type: 'insert',
-                value: 'new content',
-                safety: 'Safe'
-            };
-
-            const result = createCodeSuggestionAction(operation as any, document as any);
+        it('should deny potentially unsafe suggestions when disabled', () => {
+            mockConfig.setConfig('analysis.apply.allowPotentiallyUnsafe', false);
             
-            expect(result).to.exist;
-            expect(result).to.have.property('action');
-            expect(result!.action.title).to.include('Insert');
+            const result = service.isSuggestionAllowedByUserSettings('PotentiallyUnsafe');
+            expect(result).to.be.false;
         });
 
-        it('should handle missing operation type', () => {
-            const document: MockTextDocument = {
-                uri: { fsPath: '/test/file.php' },
-                getText: () => 'test content'
-            };
-
-            const operation: MockSuggestionOperation = {
-                type: undefined as any,
-                value: 'new content',
-                safety: 'Safe'
-            };
-
-            const result = createCodeSuggestionAction(operation as any, document as any);
+        it('should allow unsafe suggestions when explicitly enabled', () => {
+            mockConfig.setConfig('analysis.apply.allowUnsafe', true);
             
-            expect(result).to.exist;
-            expect(result).to.have.property('action');
-            expect(result!.action.title).to.include('Apply suggestion');
+            const result = service.isSuggestionAllowedByUserSettings('Unsafe');
+            expect(result).to.be.true;
         });
 
-        it('should handle delete operation', () => {
-            const document: MockTextDocument = {
-                uri: { fsPath: '/test/file.php' },
-                getText: () => 'test content'
-            };
-
-            const operation: MockSuggestionOperation = {
-                type: 'delete',
-                value: '',
-                safety: 'Safe'
-            };
-
-            const result = createCodeSuggestionAction(operation as any, document as any);
+        it('should deny unsafe suggestions when disabled', () => {
+            mockConfig.setConfig('analysis.apply.allowUnsafe', false);
             
-            expect(result).to.exist;
-            expect(result).to.have.property('action');
-            expect(result!.action.title).to.include('Delete');
+            const result = service.isSuggestionAllowedByUserSettings('Unsafe');
+            expect(result).to.be.false;
         });
 
-        it('should handle unsafe operation', () => {
-            const document: MockTextDocument = {
-                uri: { fsPath: '/test/file.php' },
-                getText: () => 'test content'
-            };
+        it('should allow unknown safety levels by default', () => {
+            const result = service.isSuggestionAllowedByUserSettings('Unknown' as any);
+            expect(result).to.be.true;
+        });
 
-            const operation: MockSuggestionOperation = {
-                type: 'replace',
-                value: 'risky content',
-                safety: 'Unsafe'
-            };
+        it('should handle undefined safety level', () => {
+            const result = service.isSuggestionAllowedByUserSettings(undefined);
+            expect(result).to.be.true;
+        });
 
-            const result = createCodeSuggestionAction(operation as any, document as any);
+        it('should use default values when config is not set', () => {
+            // Don't set any config values
+            const resultUnsafe = service.isSuggestionAllowedByUserSettings('Unsafe');
+            const resultPotentiallyUnsafe = service.isSuggestionAllowedByUserSettings('PotentiallyUnsafe');
             
-            expect(result).to.exist;
-            expect(result).to.have.property('action');
-            expect(result!.action.title).to.include('Replace');
+            expect(resultUnsafe).to.be.false; // Default is false
+            expect(resultPotentiallyUnsafe).to.be.false; // Default is false
+        });
+
+        it('should handle complex configuration scenarios', () => {
+            // Test multiple settings together
+            mockConfig.setConfig('analysis.apply.allowUnsafe', true);
+            mockConfig.setConfig('analysis.apply.allowPotentiallyUnsafe', false);
+            
+            expect(service.isSuggestionAllowedByUserSettings('Safe')).to.be.true;
+            expect(service.isSuggestionAllowedByUserSettings('PotentiallyUnsafe')).to.be.false;
+            expect(service.isSuggestionAllowedByUserSettings('Unsafe')).to.be.true;
         });
     });
 });

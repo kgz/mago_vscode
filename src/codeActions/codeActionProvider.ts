@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { createCodeSuggestionAction, isSuggestionAllowedByUserSettings } from './suggestionActions';
 import { createIssueSuppressionActions } from './suppressionActions';
+import { getService } from '../di/container';
+import { SuggestionActionsService } from './suggestionActionsWithDI';
 
 /**
  * Registers the Mago code action provider with VS Code
@@ -11,6 +13,9 @@ export function registerCodeActions(context: vscode.ExtensionContext) {
 		provideCodeActions(document, range, context, token) {
 			const availableActions: vscode.CodeAction[] = [];
             
+            // 🎯 Get DI service for suggestion actions
+            const suggestionService = getService(SuggestionActionsService);
+            
             // Process each diagnostic to create appropriate code actions
             for (const diagnostic of context.diagnostics) {
                 // Create suggestion actions from Mago's code suggestions
@@ -19,7 +24,8 @@ export function registerCodeActions(context: vscode.ExtensionContext) {
                 for (const suggestionGroup of magoSuggestions) {
                     const suggestionAction = createCodeSuggestionAction(suggestionGroup, document);
                     
-                    if (suggestionAction && isSuggestionAllowedByUserSettings(suggestionAction.safety)) {
+                    // 🎯 Use DI service to check if suggestion is allowed
+                    if (suggestionAction && suggestionService.isSuggestionAllowedByUserSettings(suggestionAction.safety)) {
                         availableActions.push(suggestionAction.action);
                     }
                 }
