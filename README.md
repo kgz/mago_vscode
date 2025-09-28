@@ -124,7 +124,7 @@ extensions = ["php", "php8"]
 
 To use the schema, add this to your `mago.toml` file:
 ```toml
-# @schema https://raw.githubusercontent.com/kgz/mago_vscode/main/mago.toml.schema.json
+#:schema https://raw.githubusercontent.com/kgz/mago_vscode/v0/mago.toml.schema.json
 ```
 
 ## 🔍 How It Works
