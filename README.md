@@ -2,8 +2,8 @@
 
 > **Unofficial VS Code extension for Mago PHP analyzer** - Get instant code analysis, quick fixes, and intelligent diagnostics directly in your editor.
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
-[![Downloads](https://img.shields.io/badge/downloads-0+-green.svg)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
+[![Version](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/kgz/mago_vscode/HEAD/package.json&query=version&label=version&color=blue)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
+[![Downloads](https://img.shields.io/vscode-marketplace/d/kgz.mago-unofficial.svg)](https://marketplace.visualstudio.com/items?itemName=kgz.mago-unofficial)
 
 ## 🚀 Features
 
@@ -74,18 +74,57 @@
    composer require --dev mago/mago
    ```
 3. **Create a `mago.toml`** file in your project root (extension will help you create one)
+   - Use the provided [schema](mago.toml.schema.json) for IntelliSense and validation
+   - See [mago.toml.example](mago.toml.example) for a complete configuration example
 4. **Start coding!** The extension will automatically analyze your PHP files
 
 ## 📁 Project Structure
 
 ```
 your-project/
-├── mago.toml          # Mago configuration
+├── mago.toml              # Mago configuration
+├── mago.toml.schema.json  # JSON schema for IntelliSense (optional)
 ├── vendor/
 │   └── bin/
-│       └── mago       # Mago binary (auto-detected)
+│       └── mago           # Mago binary (auto-detected)
 └── src/
     └── your-php-files.php
+```
+
+## 📋 Configuration Schema
+
+The extension includes a comprehensive JSON schema for `mago.toml` files that matches the official Mago configuration format:
+
+- **IntelliSense support** - Auto-completion and validation in VS Code
+- **Type checking** - Validates PHP versions, paths, and configuration options
+- **Documentation** - Inline help for all configuration options
+- **Examples** - Real-world configuration examples
+
+### Configuration Structure:
+```toml
+# Global Options
+php-version = "8.4"
+threads = 8
+stack-size = 8388608
+
+[source]
+paths = ["src", "tests"]
+excludes = ["vendor/", "cache/"]
+extensions = ["php", "php8"]
+
+[linter]
+# Linter-specific options
+
+[formatter] 
+# Formatter-specific options
+
+[analyzer]
+# Analyzer-specific options
+```
+
+To use the schema, add this to your `mago.toml` file:
+```toml
+# @schema https://raw.githubusercontent.com/kgz/mago_vscode/main/mago.toml.schema.json
 ```
 
 ## 🔍 How It Works

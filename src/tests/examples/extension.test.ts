@@ -9,7 +9,7 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
 	});
 
-	test('test data management concepts', async () => {
+	test('test data management concepts', async() => {
 		// This test demonstrates key concepts for consistent test data
 		
 		// 1. Test data should be predictable
@@ -34,7 +34,7 @@ suite('Extension Test Suite', () => {
 		assert.deepStrictEqual(firstRun, secondRun, 'Test data should be consistent across runs');
 	});
 
-	test('test data reset simulation', async () => {
+	test('test data reset simulation', async() => {
 		// This test simulates how test data should reset between runs
 		
 		// Simulate test data state
@@ -72,7 +72,7 @@ suite('Extension Test Suite', () => {
 		assert.ok(!testState.files.has('CustomTest.php'), 'Custom file should be removed after reset');
 	});
 
-	test('workspace access', async () => {
+	test('workspace access', async() => {
 		// Verify we can access the workspace
 		const workspaceFolders = vscode.workspace.workspaceFolders;
 		

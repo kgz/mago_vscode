@@ -2,14 +2,14 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 
 suite('Mago Extension - Activation', () => {
-	test('activates successfully', async () => {
-		const ext = vscode.extensions.getExtension('kgz.mago-problems');
-		assert.ok(ext, 'Extension not found (kgz.mago-problems)');
+	test('activates successfully', async() => {
+		const ext = vscode.extensions.getExtension('kgz.mago-unofficial');
+		assert.ok(ext, 'Extension not found (kgz.mago-unofficial)');
 		await ext!.activate();
 		assert.ok(ext!.isActive, 'Extension failed to activate');
 	});
 
-	test('test data is consistent', async () => {
+	test('test data is consistent', async() => {
 		// This test demonstrates the concept of consistent test data
 		// In a real scenario, you would have test data that resets every time
 		
@@ -34,7 +34,7 @@ suite('Mago Extension - Activation', () => {
 		assert.ok(testData.syntaxError.content.includes('Missing semicolon'), 'Should contain syntax error');
 	});
 
-	test('test data resets between runs', async () => {
+	test('test data resets between runs', async() => {
 		// This test demonstrates that test data should reset between runs
 		// Each test run should start with the same clean state
 		
@@ -66,7 +66,7 @@ suite('Mago Extension - Activation', () => {
 		assert.deepStrictEqual(firstRun.files, secondRun.files, 'Should have same test files');
 	});
 
-	test('can access workspace files', async () => {
+	test('can access workspace files', async() => {
 		// Verify we can access files in the workspace
 		const workspaceFolders = vscode.workspace.workspaceFolders;
 		

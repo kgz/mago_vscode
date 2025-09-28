@@ -53,20 +53,16 @@ class HelloWorld2 extends HelloWorld implements HelloWorldContract
     }
 
 	/**
-	 * @throws \Exception
 	 *
 	 * @return void
+     * @throws \Exception
 	 */
 	public function HelloWorld(): void {
 		throw new \Exception("sdf");
 	}
 
 	public function HelloUniverse(): void {
-		try {
-			$this->HelloWorld();
-		} catch (\Exception $e) {
-			echo $e->getMessage();
-		}
+        $this->HelloWorld();
 		return;
 	}
 }
