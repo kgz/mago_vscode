@@ -17,6 +17,11 @@
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/tests/**/*",
+    "src/**/index.ts",
+    "src/codeActions/codeActionProvider.ts",
+    "src/codeActions/services/VSCodeService.ts",
+    "src/codeActions/services/VSCodeConfigurationService.ts",
+    "src/codeActions/services/VSCodeWorkspaceService.ts",
     "out/**/*",
     "dist/**/*",
     "node_modules/**/*"

@@ -3,12 +3,15 @@ import { injectable } from 'tsyringe';
 import { IConfigurationService } from './IConfigurationService';
 
 /**
- * VS Code implementation of the configuration service
- * Uses the actual VS Code workspace configuration
+ * VS Code implementation of IConfigurationService
  */
 @injectable()
 export class VSCodeConfigurationService implements IConfigurationService {
-    private readonly config = vscode.workspace.getConfiguration('mago');
+    private config: vscode.WorkspaceConfiguration;
+
+    constructor() {
+        this.config = vscode.workspace.getConfiguration('mago');
+    }
 
     get<T>(key: string): T | undefined {
         return this.config.get<T>(key);

@@ -74,6 +74,7 @@ export interface IDiagnostic {
 export interface ICodeAction {
     title: string;
     kind: string;
+    edit?: any; // vscode.WorkspaceEdit;
 }
 
 /**

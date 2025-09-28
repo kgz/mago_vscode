@@ -1,5 +1,7 @@
 import { injectable, inject } from 'tsyringe';
 import { CodeSuggestionActionService } from './suggestionActions';
+import { SuppressionActionsService } from './suppressionActions';
+import { WorkspaceActionsService } from './workspaceActions';
 import { IVSCodeService, ICodeActionsProvider, IExtensionContext, IDocument, IRange, ICodeActionContext, ICodeAction, ICancellationToken } from './services/IVSCodeService';
 import { getService } from '../di/container';
 
@@ -10,7 +12,9 @@ import { getService } from '../di/container';
 export class CodeActionProviderService implements ICodeActionsProvider {
     constructor(
         @inject('IVSCodeService') private vscodeService: IVSCodeService,
-        @inject(CodeSuggestionActionService) private suggestionActionService: CodeSuggestionActionService
+        @inject(CodeSuggestionActionService) private suggestionActionService: CodeSuggestionActionService,
+        @inject(SuppressionActionsService) private suppressionActionsService: SuppressionActionsService,
+        @inject(WorkspaceActionsService) private workspaceActionsService: WorkspaceActionsService
     ) {}
 
     /**
@@ -69,9 +73,19 @@ export class CodeActionProviderService implements ICodeActionsProvider {
                 }
             }
 
-            // TODO: Create suppression actions using DI
-            // For now, we'll skip suppression actions to avoid vscode dependency
-            // This could be refactored to use DI services in the future
+            // Create suppression actions using DI
+            const suppressionActions = this.suppressionActionsService.createIssueSuppressionActions(
+                diagnostic as any, 
+                document as any
+            );
+            
+            for (const suppressionAction of suppressionActions) {
+                availableActions.push({
+                    title: suppressionAction.title,
+                    kind: suppressionAction.kind,
+                    edit: suppressionAction.edit
+                });
+            }
         }
         
         return availableActions;

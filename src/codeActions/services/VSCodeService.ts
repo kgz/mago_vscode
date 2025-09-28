@@ -36,6 +36,16 @@ export class VSCodeService implements IVSCodeService {
                 const interfaceContext: ICodeActionContext = {
                     diagnostics: context.diagnostics.map(d => ({
                         message: d.message,
+                        range: {
+                            start: { line: d.range.start.line, character: d.range.start.character },
+                            end: { line: d.range.end.line, character: d.range.end.character }
+                        },
+                        code: d.code,
+                        source: d.source,
+                        severity: d.severity,
+                        tags: d.tags,
+                        relatedInformation: d.relatedInformation,
+                        magoCategory: (d as any).magoCategory,
                         magoSuggestions: (d as any).magoSuggestions
                     }))
                 };
@@ -55,16 +65,24 @@ export class VSCodeService implements IVSCodeService {
                 // Convert back to VS Code types if needed
                 if (result instanceof Promise) {
                     return result.then(actions => 
-                        actions.map(action => ({
-                            title: action.title,
-                            kind: vscode.CodeActionKind.QuickFix
-                        } as vscode.CodeAction))
+                        actions.map(action => {
+                            const vscodeAction = new vscode.CodeAction(action.title, vscode.CodeActionKind.QuickFix);
+                            if (action.edit) {
+                                // The edit should already be a VS Code WorkspaceEdit
+                                vscodeAction.edit = action.edit as any;
+                            }
+                            return vscodeAction;
+                        })
                     );
                 } else {
-                    return result.map(action => ({
-                        title: action.title,
-                        kind: vscode.CodeActionKind.QuickFix
-                    } as vscode.CodeAction));
+                    return result.map(action => {
+                        const vscodeAction = new vscode.CodeAction(action.title, vscode.CodeActionKind.QuickFix);
+                        if (action.edit) {
+                            // The edit should already be a VS Code WorkspaceEdit
+                            vscodeAction.edit = action.edit as any;
+                        }
+                        return vscodeAction;
+                    });
                 }
             }
         };
