@@ -2,7 +2,8 @@
 export * from './types';
 
 // Export suggestion action functions
-export { createCodeSuggestionAction, isSuggestionAllowedByUserSettings } from './suggestionActions';
+export { CodeSuggestionActionService } from './suggestionActions';
+export { SuggestionActionsService } from './suggestionSafetyService';
 
 // Export suppression action functions
 export { createIssueSuppressionActions, getUserSuppressionSettings } from './suppressionActions';

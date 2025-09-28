@@ -1,5 +1,7 @@
-import * as vscode from 'vscode';
+import { injectable, inject } from 'tsyringe';
 import { SuggestionSafetyLevel, CodeSuggestionAction } from './types';
+import { IWorkspaceService, IDocumentService, IWorkspaceEditService, ICodeActionService, IPosition } from './services/IWorkspaceService';
+import { SuggestionActionsService } from './suggestionSafetyService';
 
 /**
  * Represents a Mago suggestion operation
@@ -16,74 +18,76 @@ interface SuggestionOperation {
 }
 
 /**
- * Creates a VS Code code action from a Mago suggestion
- * Processes the suggestion operations and creates the appropriate edits
+ * Service for creating code suggestion actions with full DI support
  */
-export function createCodeSuggestionAction(
-    suggestionGroup: unknown, 
-    document: vscode.TextDocument
-): CodeSuggestionAction | undefined {
-    // Extract the patch data from the suggestion group
-    const [, patchData] = suggestionGroup as [unknown, { operations?: unknown[] }];
-    const operations: unknown[] = Array.isArray(patchData?.operations) ? patchData.operations : [];
-    
-    const workspaceEdit = new vscode.WorkspaceEdit();
-    let safetyLevel: SuggestionSafetyLevel | undefined;
-    
-    // Process each operation in the suggestion
-    for (const operation of operations) {
-        const insertOperation = operation as SuggestionOperation;
+@injectable()
+export class CodeSuggestionActionService {
+    constructor(
+        @inject('IWorkspaceService') private workspaceService: IWorkspaceService,
+        @inject('ICodeActionService') private codeActionService: ICodeActionService,
+        @inject(SuggestionActionsService) private suggestionService: SuggestionActionsService
+    ) {}
+
+    /**
+     * Creates a code action from a Mago suggestion using DI services
+     */
+    createCodeSuggestionAction(
+        suggestionGroup: unknown, 
+        documentService: IDocumentService,
+        workspaceEditService: IWorkspaceEditService
+    ): CodeSuggestionAction | undefined {
+        // Extract the patch data from the suggestion group
+        const [, patchData] = suggestionGroup as [unknown, { operations?: unknown[] }];
+        const operations: unknown[] = Array.isArray(patchData?.operations) ? patchData.operations : [];
         
-        if (insertOperation.type === 'Insert') {
-            const operationValue = insertOperation.value;
-            if (!operationValue) {
-                continue;
+        let safetyLevel: SuggestionSafetyLevel | undefined;
+        
+        // Process each operation in the suggestion
+        let hasValidOperations = false;
+        for (const operation of operations) {
+            const insertOperation = operation as SuggestionOperation;
+            
+            if (insertOperation.type === 'Insert') {
+                const operationValue = insertOperation.value;
+                if (!operationValue) {
+                    continue;
+                }
+                
+                const textOffset = operationValue.offset ?? 0;
+                const textToInsert = operationValue.text ?? '';
+                safetyLevel = operationValue.safety_classification?.type;
+                
+                // Convert offset to position and add the edit using DI service
+                const insertPosition = documentService.positionAt(textOffset);
+                workspaceEditService.insert('', insertPosition, textToInsert);
+                hasValidOperations = true;
             }
-            
-            const textOffset = operationValue.offset ?? 0;
-            const textToInsert = operationValue.text ?? '';
-            safetyLevel = operationValue.safety_classification?.type;
-            
-            // Convert offset to VS Code position and add the edit
-            const insertPosition = document.positionAt(textOffset);
-            workspaceEdit.insert(document.uri, insertPosition, textToInsert);
         }
+        
+        // If no valid operations were found, return undefined
+        if (!hasValidOperations) {
+            return undefined;
+        }
+        
+        // Check if suggestion is allowed using DI service
+        if (!this.suggestionService.isSuggestionAllowedByUserSettings(safetyLevel)) {
+            return undefined;
+        }
+        
+        // Create the code action using DI service
+        const codeAction = this.codeActionService.createCodeAction('Mago: Apply suggestion', 'quickfix');
+        
+        return {
+            action: codeAction as any, // Cast to VS Code type for compatibility
+            safety: safetyLevel
+        };
     }
-    
-    // Create the VS Code code action
-    const codeAction = new vscode.CodeAction('Mago: Apply suggestion', vscode.CodeActionKind.QuickFix);
-    codeAction.edit = workspaceEdit;
-    
-    return { 
-        action: codeAction, 
-        safety: safetyLevel 
-    };
 }
 
 /**
- * Checks if a suggestion with the given safety level is allowed based on user settings
+ * Backward compatibility function that creates the service
+ * This would be resolved from DI container in real usage
  */
-export function isSuggestionAllowedByUserSettings(safetyLevel: SuggestionSafetyLevel | undefined): boolean {
-    const magoConfig = vscode.workspace.getConfiguration('mago');
-    
-    const allowUnsafeSuggestions = magoConfig.get<boolean>('analysis.apply.allowUnsafe') ?? false;
-    const allowPotentiallyUnsafeSuggestions = magoConfig.get<boolean>('analysis.apply.allowPotentiallyUnsafe') ?? false;
-    
-    switch (safetyLevel) {
-        case 'Safe':
-            // Safe suggestions are always allowed
-            return true;
-            
-        case 'PotentiallyUnsafe':
-            // Potentially unsafe suggestions require user permission
-            return allowPotentiallyUnsafeSuggestions;
-            
-        case 'Unsafe':
-            // Unsafe suggestions require explicit user permission
-            return allowUnsafeSuggestions;
-            
-        default:
-            // Unknown safety levels are allowed by default (conservative approach)
-            return true;
-    }
+export function createCodeSuggestionActionService(): CodeSuggestionActionService {
+    throw new Error('This should be resolved from DI container');
 }

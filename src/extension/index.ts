@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import * as vscode from 'vscode';
 import { magoExtensionManager } from './extensionManager';
 

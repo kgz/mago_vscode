@@ -2,7 +2,13 @@ import 'reflect-metadata';
 import { container } from 'tsyringe';
 import { VSCodeConfigurationService } from '../codeActions/services/VSCodeConfigurationService';
 import { IConfigurationService } from '../codeActions/services/IConfigurationService';
-import { SuggestionActionsService } from '../codeActions/suggestionActionsWithDI';
+import { SuggestionActionsService } from '../codeActions/suggestionSafetyService';
+import { CodeSuggestionActionService } from '../codeActions/suggestionActions';
+import { VSCodeWorkspaceService, VSCodeDocumentService, VSCodeWorkspaceEditService, VSCodeCodeActionService } from '../codeActions/services/VSCodeWorkspaceService';
+import { IWorkspaceService, ICodeActionService } from '../codeActions/services/IWorkspaceService';
+import { VSCodeService } from '../codeActions/services/VSCodeService';
+import { IVSCodeService } from '../codeActions/services/IVSCodeService';
+import { CodeActionProviderService } from '../codeActions/codeActionProvider';
 
 /**
  * Sets up the dependency injection container for the Mago extension
@@ -15,8 +21,27 @@ export function setupDIContainer(): void {
         VSCodeConfigurationService
     );
 
-    // Register suggestion actions service
+    // Register workspace services
+    container.registerSingleton<IWorkspaceService>(
+        'IWorkspaceService',
+        VSCodeWorkspaceService
+    );
+
+    container.registerSingleton<ICodeActionService>(
+        'ICodeActionService',
+        VSCodeCodeActionService
+    );
+
+    // Register VS Code service
+    container.registerSingleton<IVSCodeService>(
+        'IVSCodeService',
+        VSCodeService
+    );
+
+    // Register suggestion actions services
     container.registerSingleton(SuggestionActionsService);
+    container.registerSingleton(CodeSuggestionActionService);
+    container.registerSingleton(CodeActionProviderService);
 
     console.log('DI Container initialized');
 }

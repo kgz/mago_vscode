@@ -10,8 +10,8 @@
   "report-dir": "./coverage",
   "temp-dir": "./.nyc_output",
   "include": [
-    "src/codeActions/diagnosticUtils.ts",
-    "src/template/composerParser.ts"
+    "src/codeActions/**/*.ts",
+    "src/template/**/*.ts"
   ],
   "exclude": [
     "src/**/*.test.ts",

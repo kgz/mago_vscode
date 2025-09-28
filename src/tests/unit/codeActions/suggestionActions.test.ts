@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { describe, it, beforeEach } from 'mocha';
 const { expect } = require('chai');
 import { container } from 'tsyringe';
-import { SuggestionActionsService } from '../../../codeActions/suggestionActionsWithDI';
+import { SuggestionActionsService } from '../../../codeActions/suggestionSafetyService';
 import { MockConfigurationService } from './services/MockConfigurationService';
 import { IConfigurationService } from '../../../codeActions/services/IConfigurationService';
 
