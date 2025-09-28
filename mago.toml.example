@@ -1,47 +1,45 @@
 # Example mago.toml configuration file
 # This file demonstrates the structure and options available for Mago static analysis
 
-name = "my-php-project"
-php = "8.4"
+# Global Options
+php-version = "8.4"
+threads = 8
+stack-size = 8388608  # 8 MB
+allow-unsupported-php-version = false
+use-pager = false
+# pager = "less -R"  # Optional pager command
 
-# Paths to analyze
-paths = [
-    "src/",
-    "app/",
-    "lib/"
-]
+# Source Configuration
+[source]
+# Directories to scan for source files
+paths = ["src", "tests"]
 
-# Paths to exclude from analysis
-exclude = [
+# Files/directories to include for analysis context (e.g., vendor packages)
+includes = ["vendor/symfony/http-foundation"]
+
+# Paths or glob patterns to exclude from scanning
+excludes = [
+    "src/Legacy/**",
+    "**/*_generated.php",
     "vendor/",
-    "tests/",
     "cache/",
     "storage/"
 ]
 
-# Rule configuration
-[rules]
-# Issues to ignore globally
-ignore = [
-    "analysis:unhandled-thrown-type",
-    "analysis:invalid-operand"
-]
+# File extensions to consider as PHP files
+extensions = ["php", "php8"]
 
-# Issues that are expected to occur
-expect = [
-    "analysis:invalid-return-statement"
-]
+# Tool-Specific Configuration
+# For detailed configuration options, see:
+# - Linter Configuration: https://mago.dev/docs/configuration/linter
+# - Formatter Configuration: https://mago.dev/docs/configuration/formatter  
+# - Analyzer Configuration: https://mago.dev/docs/configuration/analyzer
 
-# Analysis options
-strict = true
-parallel = true
+[linter]
+# Linter-specific options go here
 
-# Cache configuration
-[cache]
-enabled = true
-directory = ".mago-cache"
+[formatter]
+# Formatter-specific options go here
 
-# Output configuration
-[output]
-format = "json"
-# file = "mago-results.json"  # Optional output file
+[analyzer]
+# Analyzer-specific options go here

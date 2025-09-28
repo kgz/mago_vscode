@@ -93,12 +93,34 @@ your-project/
 
 ## 📋 Configuration Schema
 
-The extension includes a comprehensive JSON schema for `mago.toml` files:
+The extension includes a comprehensive JSON schema for `mago.toml` files that matches the official Mago configuration format:
 
 - **IntelliSense support** - Auto-completion and validation in VS Code
-- **Type checking** - Validates PHP versions, issue codes, and paths
+- **Type checking** - Validates PHP versions, paths, and configuration options
 - **Documentation** - Inline help for all configuration options
 - **Examples** - Real-world configuration examples
+
+### Configuration Structure:
+```toml
+# Global Options
+php-version = "8.4"
+threads = 8
+stack-size = 8388608
+
+[source]
+paths = ["src", "tests"]
+excludes = ["vendor/", "cache/"]
+extensions = ["php", "php8"]
+
+[linter]
+# Linter-specific options
+
+[formatter] 
+# Formatter-specific options
+
+[analyzer]
+# Analyzer-specific options
+```
 
 To use the schema, add this to your `mago.toml` file:
 ```toml

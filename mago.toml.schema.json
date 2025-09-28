@@ -5,119 +5,107 @@
   "description": "Schema for mago.toml configuration files used by the Mago static analysis tool",
   "type": "object",
   "properties": {
-    "name": {
+    "php-version": {
       "type": "string",
-      "description": "The name of the project being analyzed"
-    },
-    "php": {
-      "type": "string",
-      "description": "The PHP version to use for analysis",
+      "description": "The version of PHP to use for parsing and analysis",
       "pattern": "^\\d+\\.\\d+$",
-      "examples": ["8.1", "8.2", "8.3", "8.4"]
+      "examples": ["8.1", "8.2", "8.3", "8.4"],
+      "default": "8.1"
     },
-    "paths": {
-      "type": "array",
-      "description": "Array of paths to analyze",
-      "items": {
-        "type": "string"
-      },
-      "examples": [["src/", "app/", "lib/"]]
-    },
-    "exclude": {
-      "type": "array",
-      "description": "Array of paths to exclude from analysis",
-      "items": {
-        "type": "string"
-      },
-      "examples": [["vendor/", "tests/", "cache/"]]
-    },
-    "rules": {
-      "type": "object",
-      "description": "Configuration for specific analysis rules",
-      "properties": {
-        "ignore": {
-          "type": "array",
-          "description": "Array of issue codes to ignore globally",
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z]+:[a-z-]+$",
-            "examples": ["analysis:unhandled-thrown-type", "analysis:invalid-operand", "analysis:invalid-return-statement"]
-          }
-        },
-        "expect": {
-          "type": "array",
-          "description": "Array of issue codes that are expected to occur",
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z]+:[a-z-]+$",
-            "examples": ["analysis:unhandled-thrown-type", "analysis:invalid-operand"]
-          }
-        }
-      }
-    },
-    "strict": {
+    "allow-unsupported-php-version": {
       "type": "boolean",
-      "description": "Enable strict mode for more thorough analysis",
+      "description": "Allow Mago to run on unsupported PHP versions. Not recommended",
       "default": false
     },
-    "parallel": {
+    "threads": {
+      "type": "integer",
+      "description": "The number of threads to use for parallel tasks",
+      "minimum": 1,
+      "default": "logical CPUs"
+    },
+    "stack-size": {
+      "type": "integer",
+      "description": "The stack size in bytes for each thread. Defaults to 2MB, with a minimum of 2MB and a maximum of 8MB",
+      "minimum": 2097152,
+      "maximum": 8388608,
+      "default": 2097152
+    },
+    "use-pager": {
       "type": "boolean",
-      "description": "Enable parallel analysis for faster processing",
-      "default": true
+      "description": "Use a pager for long output",
+      "default": false
     },
-    "cache": {
+    "pager": {
+      "type": "string",
+      "description": "The pager command to use (e.g., 'less -R')",
+      "default": null
+    },
+    "source": {
       "type": "object",
-      "description": "Cache configuration",
+      "description": "Configuration for how Mago discovers files to analyze and format",
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Enable caching of analysis results",
-          "default": true
+        "paths": {
+          "type": "array",
+          "description": "A list of directories to scan for source files. If empty, the entire workspace is scanned",
+          "items": {
+            "type": "string"
+          },
+          "default": []
         },
-        "directory": {
-          "type": "string",
-          "description": "Directory to store cache files",
-          "default": ".mago-cache"
+        "includes": {
+          "type": "array",
+          "description": "A list of specific files or directories to include for analysis context (e.g., vendor packages). These files will not be formatted, linted, or analyzed directly, but they provide essential context for the analyzer to understand symbols and types from third-party code",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "excludes": {
+          "type": "array",
+          "description": "A list of paths or glob patterns to exclude from scanning",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "extensions": {
+          "type": "array",
+          "description": "A list of file extensions to consider as PHP files",
+          "items": {
+            "type": "string"
+          },
+          "default": ["php"]
         }
       }
     },
-    "output": {
+    "linter": {
       "type": "object",
-      "description": "Output configuration",
-      "properties": {
-        "format": {
-          "type": "string",
-          "enum": ["json", "text", "sarif"],
-          "description": "Output format for analysis results",
-          "default": "json"
-        },
-        "file": {
-          "type": "string",
-          "description": "Output file path (optional)"
-        }
-      }
+      "description": "Linter configuration options",
+      "additionalProperties": true
+    },
+    "formatter": {
+      "type": "object",
+      "description": "Formatter configuration options",
+      "additionalProperties": true
+    },
+    "analyzer": {
+      "type": "object",
+      "description": "Analyzer configuration options",
+      "additionalProperties": true
     }
   },
-  "required": ["name", "php"],
   "additionalProperties": false,
   "examples": [
     {
-      "name": "my-php-project",
-      "php": "8.4",
-      "paths": ["src/"],
-      "exclude": ["vendor/", "tests/"],
-      "rules": {
-        "ignore": ["analysis:unhandled-thrown-type"],
-        "expect": ["analysis:invalid-operand"]
-      },
-      "strict": true,
-      "parallel": true,
-      "cache": {
-        "enabled": true,
-        "directory": ".mago-cache"
-      },
-      "output": {
-        "format": "json"
+      "php-version": "8.4",
+      "threads": 8,
+      "stack-size": 8388608,
+      "use-pager": false,
+      "source": {
+        "paths": ["src", "tests"],
+        "includes": ["vendor/symfony/http-foundation"],
+        "excludes": ["src/Legacy/**", "**/*_generated.php"],
+        "extensions": ["php", "php8"]
       }
     }
   ]
